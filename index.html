@@ -379,7 +379,8 @@ const CONFIG = {
   ADMIN_UPI_ID: '_bgmitornament@ibl',  // ← YEH BADALO (apna UPI ID daalo)
   ADMIN_UPI_NAME: 'BGMI Tournament',
   HELP_PHONE: '917070571993',
-  HELP_WHATSAPP: '917070571993'
+  HELP_WHATSAPP: '917070571993',
+  CHANNEL_URL: 'https://whatsapp.com/channel/0029VbDNku0BA1f5JYhOKv2V'
 };
 
 // ===== SAVE / LOAD =====
@@ -818,6 +819,9 @@ function renderPayments(){
       h += '<div class="card">';
       h += '<div class="flex"><span>'+ (t?t.name:'Event') +'</span><span class="badge badge-'+pm.status+'">'+pm.status+'</span></div>';
       h += '<div class="row"><span class="label">UTR: '+pm.utr+'</span><span>₹'+pm.amount+'</span></div>';
+      if(pm.screenshot && pm.screenshot.length>100){
+        h += '<div><img src="'+pm.screenshot+'" style="max-width:100%;max-height:100px;border-radius:4px;margin-top:4px"></div>';
+      }
       h += '</div>';
     });
   }
@@ -839,12 +843,31 @@ function submitPayment(){
   var t = D.tournaments.find(x => x.id===tid);
   if(!t) return;
 
+  var ssFile = document.getElementById('pay-ss').files[0];
+  if(ssFile && ssFile.size > 2048000){
+    toast('⚠️ Screenshot 2MB se chota hona chahiye!');
+    return;
+  }
+
+  if(ssFile){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      finishPayment(tid, utr, t, e.target.result);
+    };
+    reader.readAsDataURL(ssFile);
+  } else {
+    finishPayment(tid, utr, t, '');
+  }
+}
+
+function finishPayment(tid, utr, t, screenshot){
   D.payments.push({
     id: uid(),
     tid: tid,
     teamId: D.loggedIn.id,
     teamName: D.loggedIn.name,
     utr: utr,
+    screenshot: screenshot || '',
     amount: parseInt(t.fee) || 0,
     status: 'pending',
     timestamp: new Date().toISOString()
@@ -852,6 +875,14 @@ function submitPayment(){
   saveData();
   toast('✅ Payment submitted! Admin verify karega.');
   renderPage(currentPage);
+  // Try to auto-open WhatsApp with channel link
+  if(CONFIG.CHANNEL_URL){
+    setTimeout(function(){
+      if(confirm('🔔 New payment! Open WhatsApp Channel to check?')){
+        window.open(CONFIG.CHANNEL_URL, '_blank');
+      }
+    }, 1500);
+  }
 }
 
 // Leaderboard
@@ -885,6 +916,12 @@ function renderHelp(){
   h += '<div class="mt-8"><div class="row"><span class="label">📞 Phone</span><span>'+CONFIG.HELP_PHONE+'</span></div>';
   h += '<div class="row"><span class="label">💬 WhatsApp</span><span>'+CONFIG.HELP_WHATSAPP+'</span></div></div>';
   h += '<button class="btn btn-w btn-full mt-8" onclick="openWhatsApp()">💬 WhatsApp Contact</button>';
+  h += '</div>';
+
+  h += '<div class="card">';
+  h += '<h3>📢 Game Win Channel</h3>';
+  h += '<p>Tele updates aur results ke liye hamare WhatsApp Channel ko follow karo!</p>';
+  h += '<button class="btn btn-w btn-full mt-8" onclick="window.open(CONFIG.CHANNEL_URL,\'_blank\')">📢 Join Game Win Channel</button>';
   h += '</div>';
 
   h += '<div class="card">';
@@ -1082,12 +1119,17 @@ function renderAdminPayments(){
       h += '<div class="flex"><span style="font-weight:600;flex:1">'+pm.teamName+'</span><span class="badge badge-pending">Pending</span></div>';
       h += '<div class="row"><span class="label">Event: '+ (t?t.name:'?') +'</span><span>₹'+pm.amount+'</span></div>';
       if(pm.utr!=='FREE'){
-        h += '<div class="row"><span class="label">UTR: '+pm.utr+'</span></div>';
+        h += '<div class="row"><span class="label">🔢 UTR: '+pm.utr+'</span></div>';
+      }
+      if(pm.screenshot && pm.screenshot.length>100){
+        h += '<div style="margin:6px 0;text-align:center">';
+        h += '<img src="'+pm.screenshot+'" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--brd);cursor:pointer" onclick="window.open(\''+pm.screenshot+'\')" title="Tap to view full">';
+        h += '</div>';
       }
       h += '<div class="btn-grp mt-8">';
       h += '<button class="btn btn-g btn-sm" onclick="approvePay(\''+pm.id+'\')">✅ Approve</button>';
       h += '<button class="btn btn-r btn-sm" onclick="rejectPay(\''+pm.id+'\')">❌ Reject</button>';
-      h += '<button class="btn btn-w btn-sm" onclick="notifyPay(\''+pm.id+'\')">💬 WhatsApp</button>';
+      h += '<button class="btn btn-w btn-sm" onclick="forwardPayWhatsApp(\''+pm.id+'\')">📤 Forward</button>';
       h += '</div></div>';
     });
   }
@@ -1118,6 +1160,23 @@ function notifyPay(pid){
   if(!pm) return;
   var t = D.tournaments.find(x => x.id===pm.tid);
   var text = encodeURIComponent('Hi '+pm.teamName+', payment update for '+(t?t.name:'tournament')+'. UTR: '+pm.utr+'. Status: '+pm.status);
+  window.open('https://wa.me/'+CONFIG.HELP_WHATSAPP+'?text='+text, '_blank');
+}
+
+// Forward payment proof to admin WhatsApp for channel posting
+function forwardPayWhatsApp(pid){
+  var pm = D.payments.find(x => x.id===pid);
+  if(!pm) return;
+  var t = D.tournaments.find(x => x.id===pm.tid);
+  var text = encodeURIComponent(
+    '📢 *New Payment Proof* \n'+
+    '👤 Player: '+pm.teamName+'\n'+
+    '🏆 Event: '+(t?t.name:'?')+'\n'+
+    '💵 Amount: ₹'+pm.amount+'\n'+
+    '🔢 UTR: '+pm.utr+'\n'+
+    '🕐 Time: '+new Date(pm.timestamp).toLocaleString('en-IN')+'\n\n'+
+    'Forward this to Game Win WhatsApp Channel 📢'
+  );
   window.open('https://wa.me/'+CONFIG.HELP_WHATSAPP+'?text='+text, '_blank');
 }
 

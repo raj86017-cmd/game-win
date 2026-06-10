@@ -376,10 +376,10 @@ let D = {
 
 // ===== CONFIGURATION =====
 const CONFIG = {
-  ADMIN_UPI_ID: 'admin@upi',  // ← YEH BADALO (apna UPI ID daalo)
-  ADMIN_UPI_NAME: 'Game Win Admin',
-  HELP_PHONE: '919876543210',
-  HELP_WHATSAPP: '919876543210'
+  ADMIN_UPI_ID: '_bgmitornament@ibl',  // ← YEH BADALO (apna UPI ID daalo)
+  ADMIN_UPI_NAME: 'BGMI Tournament',
+  HELP_PHONE: '917070571993',
+  HELP_WHATSAPP: '917070571993'
 };
 
 // ===== SAVE / LOAD =====
@@ -785,6 +785,7 @@ function renderPayments(){
   h += '<div class="row"><span class="label">UPI ID</span><span style="color:var(--acc);font-weight:700">'+CONFIG.ADMIN_UPI_ID+'</span></div>';
   h += '<div class="row"><span class="label">Name</span><span>'+CONFIG.ADMIN_UPI_NAME+'</span></div>';
   h += '<button class="btn btn-b btn-full mt-8" onclick="copyUPI()">📋 Copy UPI ID</button>';
+  h += '<button class="btn btn-w btn-full mt-8" onclick="openWhatsApp()">💬 Payment Issue? WhatsApp</button>';
   h += '</div>';
 
   // Select tournament for payment

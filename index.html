@@ -130,8 +130,8 @@ a{color:var(--acc);text-decoration:none;}
     <div class="auth-form active" id="loginForm">
       <h2>🔑 Login</h2>
       <div class="auth-err" id="loginErr"></div>
-      <div class="fg"><label>Email</label>
-        <input type="text" id="loginEmail" placeholder="Email ya username" autocomplete="username">
+      <div class="fg"><label>Username / Email</label>
+        <input type="text" id="loginEmail" placeholder="Username ya Email" autocomplete="username">
       </div>
       <div class="fg"><label>Password</label>
         <div class="pass-wrap">
@@ -366,7 +366,7 @@ a{color:var(--acc);text-decoration:none;}
 
 // ===== DATA =====
 let D = {
-  admin: { email: 'admin@gamewin.com', password: 'admin123' },
+  admin: { username: 'ladakusena01', password: 'Mohit@kumar1234' },
   teams: [],
   tournaments: [],
   matches: [],
@@ -497,11 +497,11 @@ function showErr(id, msg){
 function doLogin(){
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPass').value.trim();
-  if(!email||!pass){ showErr('loginErr','Email aur password daalo!'); return; }
+  if(!email||!pass){ showErr('loginErr','Email/Username aur password daalo!'); return; }
 
   // Check admin
-  if(email.toLowerCase()===D.admin.email.toLowerCase() && pass===D.admin.password){
-    D.loggedIn = { role:'admin', email: D.admin.email };
+  if(email.toLowerCase()===D.admin.username.toLowerCase() && pass===D.admin.password){
+    D.loggedIn = { role:'admin', username: D.admin.username };
     saveSession();
     enterApp();
     return;
@@ -1000,8 +1000,11 @@ function renderAdminDash(){
 function renderAdminTournaments(){
   var h = '';
   if(D.tournaments.length===0){
-    h = '<div class="card text-center text-dim">Koi tournament nahi hai. Create karo!</div>';
+    h = '<div class="card text-center text-dim">Koi tournament nahi hai. "+Create" se banao!</div>';
   } else {
+    h += '<div class="card" style="background:rgba(255,70,85,.05);border-color:#ff4655;padding:10px 14px;margin-bottom:12px">';
+    h += '<div style="font-size:.8em;color:#ff4655;font-weight:600">📌 Event Delete Karne Ke Liye Neeche Scroll Karo ⬇️</div>';
+    h += '</div>';
     D.tournaments.forEach(t => {
       var teamCount = new Set(D.payments.filter(pm => pm.tid===t.id && pm.status==='approved').map(pm => pm.teamId)).size;
       h += '<div class="card">';
@@ -1014,7 +1017,7 @@ function renderAdminTournaments(){
       h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
       h += '<div class="row"><span class="label">🏆 ₹'+t.prize+'</span><span>🎯 '+t.type+'</span></div>';
       h += '<div class="row"><span class="label">👥 Teams: '+teamCount+'/'+t.maxTeams+'</span><span>🗺️ '+t.map+'</span></div>';
-      h += '<button class="btn btn-s btn-sm mt-8" onclick="deleteTournament(\''+t.id+'\')">🗑️ Delete</button>';
+      h += '<button class="btn btn-r btn-full mt-8" onclick="deleteTournament(\''+t.id+'\')">🗑️ DELETE TOURNAMENT - '+t.name+'</button>';
       h += '</div>';
     });
   }
@@ -1027,13 +1030,15 @@ function changeStatus(tid, status){
 }
 
 function deleteTournament(tid){
-  if(!confirm('Delete this tournament?')) return;
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+  if(!confirm('⚠️ SURE? "'+t.name+'" delete ho jayega! Sab matches aur payments bhi delete honge.')) return;
   D.tournaments = D.tournaments.filter(x => x.id!==tid);
   D.matches = D.matches.filter(m => m.tid!==tid);
   D.payments = D.payments.filter(p => p.tid!==tid);
   saveData();
   renderPage(currentPage);
-  toast('🗑️ Deleted!');
+  toast('🗑️ "'+t.name+'" deleted!');
 }
 
 // Admin Teams

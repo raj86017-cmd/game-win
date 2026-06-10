@@ -10,6 +10,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Game Win 🏆</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+// EmailJS initialized after config loads (in CONFIG section)
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--bg:#0a0a0f;--card:#12121a;--card2:#1a1a2e;--acc:#ffd700;--acc2:#ff6b35;--gold:#ffd700;--blue:#00d4ff;--green:#00ff88;--text:#e0e0e0;--dim:#888;--brd:#2a2a3e;}
@@ -116,6 +120,11 @@ a{color:var(--acc);text-decoration:none;}
 
 /* Responsive */
 @media(min-width:601px){.btm-nav{display:none;}.page{padding-bottom:20px;}}
+
+/* Login tabs */
+.login-tab{border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:600;font-size:.85em;background:transparent;color:var(--dim);transition:.2s}
+.login-tab.active{background:var(--acc);color:var(--bg)}
+.login-tab:not(.active):hover{background:var(--card);color:var(--text)}
 </style>
 </head>
 <body>
@@ -130,16 +139,41 @@ a{color:var(--acc);text-decoration:none;}
     <div class="auth-form active" id="loginForm">
       <h2>🔑 Login</h2>
       <div class="auth-err" id="loginErr"></div>
-      <div class="fg"><label>Username / Email</label>
-        <input type="text" id="loginEmail" placeholder="Username ya Email" autocomplete="username">
+      <!-- Login Tabs -->
+      <div class="flex gap-4 mb-8" id="loginTabs" style="background:var(--card2);border-radius:8px;padding:3px">
+        <button class="btn btn-sm f1 login-tab active" data-tab="pass" onclick="switchLoginTab('pass')">🔑 Password</button>
+        <button class="btn btn-sm f1 login-tab" data-tab="otp" onclick="switchLoginTab('otp')">📱 OTP</button>
       </div>
-      <div class="fg"><label>Password</label>
-        <div class="pass-wrap">
-          <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
-          <button type="button" id="loginEye" class="eye-btn" onclick="togglePass()" ontouchend="togglePass()">👁️</button>
+      <!-- Password Login -->
+      <div id="loginPassSection">
+        <div class="fg"><label>Username / Email</label>
+          <input type="text" id="loginEmail" placeholder="Username ya Email" autocomplete="username">
         </div>
+        <div class="fg"><label>Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+            <button type="button" id="loginEye" class="eye-btn" onclick="togglePass()" ontouchend="togglePass()">👁️</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-p btn-full" onclick="doLogin()">🔑 Login</button>
       </div>
-      <button type="button" class="btn btn-p btn-full" onclick="doLogin()">🔑 Login</button>
+      <!-- OTP Login -->
+      <div id="loginOtpSection" style="display:none">
+        <div class="fg"><label>Email / Phone</label>
+          <input type="text" id="loginOtpId" placeholder="Email ya phone number">
+        </div>
+        <div id="otpSendSection">
+          <button type="button" class="btn btn-p btn-full" onclick="sendOTP()">📨 Send OTP</button>
+        </div>
+        <div id="otpVerifySection" style="display:none">
+          <div class="fg"><label>Enter OTP</label>
+            <input type="text" id="loginOtpCode" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+          </div>
+          <button type="button" class="btn btn-g btn-full" onclick="verifyOTP()">✅ Verify & Login</button>
+          <div class="text-center mt-8 text-dim" style="font-size:.8em" id="otpTimer"></div>
+        </div>
+        <div id="otpStatus" class="mt-8 text-center" style="font-size:.85em"></div>
+      </div>
       <div class="auth-link text-center mt-12 text-dim">
         Account nahi hai? <a href="javascript:void(0)" onclick="showSignup()">Sign Up</a>
       </div>
@@ -379,13 +413,25 @@ let D = {
 
 // ===== CONFIGURATION =====
 const CONFIG = {
-  ADMIN_UPI_ID: 'bgmitornament@ibl',  // ← YEH BADALO (apna UPI ID daalo)
+  ADMIN_UPI_ID: 'bgmitornament@ibl',
   ADMIN_UPI_NAME: 'Mohit Kumar',
   HELP_PHONE: '917070571993',
   HELP_EMAIL: 'raj86017@gmail.com',
   HELP_WHATSAPP: '',
-  CHANNEL_URL: 'https://whatsapp.com/channel/0029VbDNku0BA1f5JYhOKv2V'
+  CHANNEL_URL: 'https://whatsapp.com/channel/0029VbDNku0BA1f5JYhOKv2V',
+  // EmailJS — FREE (200 emails/month). Signup: https://www.emailjs.com/
+  // Step 1: Signup → Step 2: Create Email Service → Step 3: Create Template
+  // Step 4: Copy keys below
+  EMAILJS_PUBLIC_KEY: 'YOUR_PUBLIC_KEY',   // Account → API Keys → Public Key
+  EMAILJS_SERVICE_ID: 'YOUR_SERVICE_ID',   // Email Services → Service ID
+  EMAILJS_OTP_TEMPLATE: 'YOUR_OTP_TEMPLATE_ID',       // Email Templates → OTP template ID
+  EMAILJS_ROOM_TEMPLATE: 'YOUR_ROOM_TEMPLATE_ID'       // Email Templates → Room info template ID
 };
+
+// Init EmailJS
+if(typeof emailjs !== 'undefined' && CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY'){
+  try { emailjs.init(CONFIG.EMAILJS_PUBLIC_KEY); } catch(e) { console.warn('EmailJS init failed', e); }
+}
 
 // ===== SAVE / LOAD =====
 function saveData(){
@@ -524,6 +570,158 @@ function doLogin(){
     return;
   }
   showErr('loginErr','Email ya password galat hai!');
+}
+
+// ===== OTP LOGIN =====
+var _otpCode = '';
+var _otpTimer = null;
+var _otpTargetId = ''; // Will store team ID or 'admin'
+
+function switchLoginTab(tab){
+  document.querySelectorAll('.login-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector('.login-tab[data-tab="'+tab+'"]').classList.add('active');
+  document.getElementById('loginPassSection').style.display = tab==='pass' ? 'block' : 'none';
+  document.getElementById('loginOtpSection').style.display = tab==='otp' ? 'block' : 'none';
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+function sendOTP(){
+  var val = document.getElementById('loginOtpId').value.trim();
+  if(!val){ showErr('loginErr','Email ya phone number daalo!'); return; }
+  document.getElementById('loginErr').style.display = 'none';
+
+  // Generate 6-digit OTP
+  _otpCode = String(Math.floor(100000 + Math.random()*900000));
+  console.log('OTP:', _otpCode); // for debugging
+
+  // Check if admin
+  var isAdmin = val.toLowerCase()===D.admin.username.toLowerCase();
+  var team = D.teams.find(t => t.email.toLowerCase()===val.toLowerCase() || t.phone===val);
+
+  if(!isAdmin && !team){
+    showErr('loginErr','Ye account exist nahi karta! Pehle Sign Up karo.');
+    return;
+  }
+
+  _otpTargetId = isAdmin ? 'admin' : team.id;
+
+  // Try EmailJS
+  var emailSent = false;
+  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && emailjs){
+    var recipient = val;
+    if(team && team.email) recipient = team.email;
+    emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_OTP_TEMPLATE, {
+      to_email: recipient,
+      otp: _otpCode,
+      name: team ? team.name : 'Admin'
+    }).then(function(){
+      emailSent = true;
+      showOTPVerify('✅ OTP sent to your email!');
+    }).catch(function(err){
+      console.error('EmailJS error:', err);
+      showOTPVerify('📱 OTP: '+_otpCode+' (EmailJS setup nahi hai)');
+    });
+  } else {
+    showOTPVerify('📱 OTP: '+_otpCode+' (Setup EmailJS for auto-send)');
+  }
+
+  // Start resend timer
+  startOTPTimer();
+}
+
+function showOTPVerify(msg){
+  document.getElementById('otpSendSection').style.display = 'none';
+  document.getElementById('otpVerifySection').style.display = 'block';
+  document.getElementById('otpStatus').innerHTML = msg;
+}
+
+function startOTPTimer(){
+  var sec = 60;
+  var el = document.getElementById('otpTimer');
+  if(_otpTimer) clearInterval(_otpTimer);
+  _otpTimer = setInterval(function(){
+    el.textContent = 'Resend in '+sec+'s';
+    sec--;
+    if(sec<0){
+      clearInterval(_otpTimer);
+      el.textContent = '⌛ OTP expired. Send again.';
+      document.getElementById('otpSendSection').style.display = 'block';
+      document.getElementById('otpVerifySection').style.display = 'none';
+    }
+  }, 1000);
+}
+
+function verifyOTP(){
+  var otp = document.getElementById('loginOtpCode').value.trim();
+  if(!otp){ showErr('loginErr','OTP daalo!'); return; }
+  if(otp !== _otpCode){
+    showErr('loginErr','❌ Galat OTP! Dobara try karo.');
+    return;
+  }
+  // OTP verified!
+  if(_otpTargetId === 'admin'){
+    D.loggedIn = { role:'admin', username: D.admin.username };
+  } else {
+    var team = D.teams.find(t => t.id===_otpTargetId);
+    if(!team){ showErr('loginErr','Error: team not found'); return; }
+    D.loggedIn = { role:'team', id:team.id, name:team.name, email:team.email };
+  }
+  saveSession();
+  enterApp();
+}
+
+// ===== ROOM NOTIFICATION =====
+function notifyPlayers(tid, mid){
+  var t = D.tournaments.find(x => x.id===tid);
+  var m = D.matches.find(x => x.id===mid);
+  if(!t||!m) return;
+  
+  // Get joined players
+  var joinedPayments = D.payments.filter(pm => pm.tid===tid && pm.status==='approved');
+  var teamIds = [...new Set(joinedPayments.map(pm => pm.teamId))];
+  var teams = D.teams.filter(tm => teamIds.includes(tm.id));
+
+  if(teams.length===0){
+    toast('❌ Koi player joined nahi hai!');
+    return;
+  }
+
+  var msg = encodeURIComponent('🎮 '+t.name+' Match #'+m.num+'\n🔑 Room: '+m.rid+'\n🔒 Pass: '+m.rpw+'\n📅 '+fmtDate(m.date));
+
+  // Send email via EmailJS (if configured)
+  var emailSent = 0;
+  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && emailjs){
+    teams.forEach(function(tm){
+      if(tm.email){
+        emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_ROOM_TEMPLATE, {
+          to_email: tm.email,
+          to_name: tm.name,
+          tournament: t.name,
+          match_num: m.num,
+          room_id: m.rid,
+          room_pass: m.rpw || 'N/A',
+          match_date: fmtDate(m.date)
+        }).then(function(){ emailSent++; }).catch(function(){});
+      }
+    });
+    toast('📨 Email sent to '+teams.length+' players!');
+  } else {
+    toast('📱 Setup EmailJS for auto email. Tap SMS to send!');
+  }
+
+  // SMS via phone intent (Android)
+  teams.forEach(function(tm){
+    if(tm.phone && tm.phone.length>=10){
+      var btn = document.createElement('div');
+      btn.style.cssText = 'position:fixed;bottom:80px;left:10px;right:10px;z-index:999;background:var(--card);border:1px solid var(--acc);border-radius:12px;padding:15px;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+      btn.innerHTML = '<div style="text-align:center;margin-bottom:10px;font-weight:600">📲 Send to '+tm.name+'?</div>'+
+        '<div class="flex gap-4">'+
+        '<button class="btn btn-p btn-sm f1" onclick="window.open(\'sms:'+tm.phone+'?body='+msg+'\',\'_blank\')">💬 SMS: '+tm.phone+'</button>'+
+        '<button class="btn btn-s btn-sm" onclick="this.parentElement.parentElement.remove()">✕</button>'+
+        '</div>';
+      document.body.appendChild(btn);
+    }
+  });
 }
 
 function doSignup(){
@@ -1135,6 +1333,7 @@ function renderAdminMatches(){
       h += '<div class="btn-grp mt-8">';
       if(!m.completed){
         h += '<button class="btn btn-g btn-sm" onclick="completeMatch(\''+m.id+'\')">✅ Complete</button>';
+        h += '<button class="btn btn-b btn-sm" onclick="notifyPlayers(\''+m.tid+'\',\''+m.id+'\')">📨 Notify All</button>';
       }
       h += '<button class="btn btn-r btn-sm" onclick="deleteMatch(\''+m.id+'\')">🗑️ Delete</button>';
       h += '</div></div>';

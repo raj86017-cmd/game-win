@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="version" content="v1">
+<title>Game Win 🏆</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#0a0a0f;--card:#12121a;--card2:#1a1a2e;--acc:#ffd700;--acc2:#ff6b35;--gold:#ffd700;--blue:#00d4ff;--green:#00ff88;--text:#e0e0e0;--dim:#888;--brd:#2a2a3e;}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
+input,button,textarea{font-family:inherit;font-size:inherit;}
+a{color:var(--acc);text-decoration:none;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px;}
+
+/* ===== AUTH ===== */
+.auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.auth-logo{font-size:2.2em;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:5px;}
+.auth-subtitle{color:var(--dim);text-align:center;margin-bottom:25px;font-size:.9em;}
+.auth-card{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:24px;width:100%;max-width:400px;}
+.auth-card h2{font-size:1.1em;color:var(--acc);text-align:center;margin-bottom:16px;}
+.auth-form{display:none;}
+.auth-form.active{display:block;}
+.auth-err{background:rgba(255,70,85,.15);color:#ff4655;padding:8px;border-radius:8px;font-size:.85em;text-align:center;margin-bottom:10px;display:none;}
+
+/* Form */
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:.85em;color:var(--dim);margin-bottom:4px;font-weight:600;}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;color:var(--text);outline:none;transition:border .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--acc);}
+.fg textarea{resize:vertical;min-height:60px;}
+
+.pass-wrap{position:relative;display:flex;align-items:center;}
+.pass-wrap input{width:100%;padding-right:46px!important;}
+.eye-btn{position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;touch-action:manipulation;z-index:10;color:var(--dim);display:flex;align-items:center;justify-content:center;}
+.eye-btn:active{color:var(--text);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9em;transition:all .2s;touch-action:manipulation;}
+.btn:active{transform:scale(.96);}
+.btn-full{width:100%;}
+.btn-p{background:linear-gradient(135deg,#ffd700,#ff6b35);color:#000;}
+.btn-g{background:linear-gradient(135deg,#00c853,#00e676);color:#000;}
+.btn-r{background:linear-gradient(135deg,#ff1744,#d50000);color:#fff;}
+.btn-s{background:var(--card2);color:var(--text);border:1px solid var(--brd);}
+.btn-w{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;}
+.btn-b{background:linear-gradient(135deg,#2979ff,#0d47a1);color:#fff;}
+.btn-sm{padding:6px 12px;font-size:.8em;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-grp{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-grp .btn{flex:1;min-width:80px;}
+
+/* ===== SCREENS ===== */
+.top-bar{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);}
+.top-bar h1{font-size:1em;color:var(--acc);font-weight:700;}
+.top-bar .user-info{font-size:.8em;color:var(--dim);}
+.page{display:none;padding:12px;max-width:600px;margin:0 auto;padding-bottom:80px;}
+.page.active{display:block;}
+
+/* Bottom Nav */
+.btm-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--brd);display:flex;z-index:1000;}
+.btm-nav button{flex:1;padding:8px 4px;background:none;border:none;color:var(--dim);font-size:.65em;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;touch-action:manipulation;}
+.btm-nav button .nv-icon{font-size:1.3em;line-height:1;}
+.btm-nav button.active{color:var(--acc);}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;}
+.card h3{font-size:.9em;color:var(--acc);margin-bottom:6px;}
+.card p,.card div{font-size:.85em;color:var(--text);}
+.card .row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:.83em;}
+.card .label{color:var(--dim);}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600;}
+.badge-upcoming{background:rgba(0,212,255,.15);color:var(--blue);}
+.badge-ongoing{background:rgba(0,255,136,.15);color:var(--green);}
+.badge-completed{background:rgba(136,136,136,.15);color:var(--dim);}
+.badge-pending{background:rgba(255,70,85,.15);color:#ff4655;}
+.badge-approved{background:rgba(0,255,136,.15);color:var(--green);}
+.badge-rejected{background:rgba(255,70,85,.15);color:#ff4655;}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;justify-content:center;align-items:center;padding:20px;overflow-y:auto;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h2{font-size:1.1em;color:var(--acc);margin-bottom:12px;}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--brd);color:var(--text);padding:10px 20px;border-radius:8px;font-size:.85em;z-index:5000;display:none;max-width:90%;text-align:center;}
+
+/* Utils */
+.mt-8{margin-top:8px;}
+.mb-8{margin-bottom:8px;}
+.mt-12{margin-top:12px;}
+.mb-12{margin-bottom:12px;}
+.text-center{text-align:center;}
+.text-dim{color:var(--dim);font-size:.85em;}
+.flex{display:flex;gap:8px;align-items:center;}
+.flex-wrap{flex-wrap:wrap;}
+.gap-4{gap:4px;}
+.f1{flex:1;}
+.tag{display:inline-block;padding:3px 8px;border-radius:4px;font-size:.75em;font-weight:600;background:var(--card2);color:var(--dim);border:1px solid var(--brd);}
+
+/* Table-like */
+.data-row{display:flex;padding:8px 0;border-bottom:1px solid var(--brd);font-size:.83em;}
+.data-row:last-child{border-bottom:none;}
+
+/* Responsive */
+@media(min-width:601px){.btm-nav{display:none;}.page{padding-bottom:20px;}}
+</style>
+</head>
+<body>
+
+<!-- ==================== AUTH SCREEN ==================== -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-logo">🏆 GAME WIN</div>
+  <div class="auth-subtitle">Organize • Compete • Win 🎮</div>
+
+  <div class="auth-card">
+    <!-- LOGIN FORM -->
+    <div class="auth-form active" id="loginForm">
+      <h2>🔑 Login</h2>
+      <div class="auth-err" id="loginErr"></div>
+      <div class="fg"><label>Email</label>
+        <input type="text" id="loginEmail" placeholder="Email ya username" autocomplete="username">
+      </div>
+      <div class="fg"><label>Password</label>
+        <div class="pass-wrap">
+          <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+          <button type="button" id="loginEye" class="eye-btn" onclick="togglePass()" ontouchend="togglePass()">👁️</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-p btn-full" onclick="doLogin()">🔑 Login</button>
+      <div class="auth-link text-center mt-12 text-dim">
+        Account nahi hai? <a href="javascript:void(0)" onclick="showSignup()">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="auth-form" id="signupForm">
+      <h2>📝 Sign Up</h2>
+      <div class="auth-err" id="signupErr"></div>
+      <div class="fg"><label>Player Name</label>
+        <input type="text" id="signupName" placeholder="Tera naam">
+      </div>
+      <div class="fg"><label>Email</label>
+        <input type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="fg"><label>Phone (WhatsApp)</label>
+        <input type="tel" id="signupPhone" placeholder="919876543210">
+      </div>
+      <div class="fg"><label>BGMI Name</label>
+        <input type="text" id="signupBgmi" placeholder="In-game name">
+      </div>
+      <div class="fg"><label>Password</label>
+        <div class="pass-wrap">
+          <input type="password" id="signupPass" placeholder="Password (min 6 chars)" autocomplete="new-password">
+          <button type="button" id="signupEye" class="eye-btn" onclick="togglePassSignup()" ontouchend="togglePassSignup()">👁️</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-p btn-full" onclick="doSignup()">📝 Sign Up</button>
+      <div class="auth-link text-center mt-12 text-dim">
+        Already have account? <a href="javascript:void(0)" onclick="showLogin()">Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="mainApp" style="display:none">
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div><h1>🏆 GAME WIN</h1><div class="user-info" id="userInfo"></div></div>
+  <button class="btn btn-s btn-sm" onclick="doLogout()">🚪 Logout</button>
+</div>
+
+<!-- ===== PAGE: Home ===== -->
+<div class="page active" id="page-home">
+  <div id="homeContent"></div>
+</div>
+
+<!-- ===== PAGE: Tournaments ===== -->
+<div class="page" id="page-tournaments">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">🏆 Tournaments</h2>
+  <div id="tournamentList"></div>
+</div>
+
+<!-- ===== PAGE: Matches ===== -->
+<div class="page" id="page-matches">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">🎮 My Matches</h2>
+  <div id="matchesList"></div>
+</div>
+
+<!-- ===== PAGE: Payments ===== -->
+<div class="page" id="page-payments">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">💰 Payments</h2>
+  <div id="paymentsContent"></div>
+</div>
+
+<!-- ===== PAGE: Leaderboard ===== -->
+<div class="page" id="page-leaderboard">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">📊 Leaderboard</h2>
+  <div id="leaderboardContent"></div>
+</div>
+
+<!-- ===== PAGE: Help ===== -->
+<div class="page" id="page-help">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">🆘 Help & Support</h2>
+  <div id="helpContent"></div>
+</div>
+
+<!-- ===== ADMIN: Dashboard ===== -->
+<div class="page" id="page-admin-dash">
+  <div id="adminDashContent"></div>
+</div>
+
+<!-- ===== ADMIN: Manage Tournaments ===== -->
+<div class="page" id="page-admin-tournaments">
+  <div class="flex mb-12">
+    <h2 style="font-size:1em;color:var(--acc);flex:1">🏆 Tournaments</h2>
+    <button class="btn btn-p btn-sm" onclick="openModal('create-tournament')">+ Create</button>
+  </div>
+  <div id="adminTournamentList"></div>
+</div>
+
+<!-- ===== ADMIN: Manage Teams ===== -->
+<div class="page" id="page-admin-teams">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">👥 Players</h2>
+  <div id="adminTeamsList"></div>
+</div>
+
+<!-- ===== ADMIN: Manage Matches ===== -->
+<div class="page" id="page-admin-matches">
+  <div class="flex mb-12">
+    <h2 style="font-size:1em;color:var(--acc);flex:1">🎮 Matches</h2>
+    <button class="btn btn-p btn-sm" onclick="openModal('create-match')">+ Create</button>
+  </div>
+  <div id="adminMatchesList"></div>
+</div>
+
+<!-- ===== ADMIN: Payments ===== -->
+<div class="page" id="page-admin-payments">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">💰 Payment Requests</h2>
+  <div id="adminPaymentsList"></div>
+</div>
+
+<!-- ===== ADMIN: Leaderboard ===== -->
+<div class="page" id="page-admin-leaderboard">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">📊 Manage Points</h2>
+  <div id="adminLeaderboardContent"></div>
+</div>
+
+<!-- ===== ADMIN: Broadcast ===== -->
+<div class="page" id="page-admin-broadcast">
+  <h2 style="font-size:1em;color:var(--acc);margin-bottom:10px">📢 Broadcast</h2>
+  <div id="broadcastContent"></div>
+</div>
+
+<!-- BOTTOM NAV (Player) -->
+<div class="btm-nav" id="playerNav">
+  <button class="active" data-page="home"><span class="nv-icon">🏠</span>Home</button>
+  <button data-page="tournaments"><span class="nv-icon">🏆</span>Events</button>
+  <button data-page="matches"><span class="nv-icon">🎮</span>Matches</button>
+  <button data-page="payments"><span class="nv-icon">💰</span>Payment</button>
+  <button data-page="leaderboard"><span class="nv-icon">📊</span>Rank</button>
+  <button data-page="help"><span class="nv-icon">🆘</span>Help</button>
+</div>
+
+<!-- BOTTOM NAV (Admin) -->
+<div class="btm-nav" id="adminNav" style="display:none">
+  <button class="active" data-page="admin-dash"><span class="nv-icon">📊</span>Dashboard</button>
+  <button data-page="admin-tournaments"><span class="nv-icon">🏆</span>Events</button>
+  <button data-page="admin-teams"><span class="nv-icon">👥</span>Teams</button>
+  <button data-page="admin-matches"><span class="nv-icon">🎮</span>Matches</button>
+  <button data-page="admin-payments"><span class="nv-icon">💰</span>Payments</button>
+  <button data-page="admin-leaderboard"><span class="nv-icon">📊</span>Points</button>
+  <button data-page="admin-broadcast"><span class="nv-icon">📢</span>Broadcast</button>
+</div>
+
+</div><!-- /mainApp -->
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- Create Tournament -->
+<div class="modal-bg" id="modal-create-tournament">
+  <div class="modal">
+    <h2>🏆 Create Tournament</h2>
+    <div class="fg"><label>Name</label><input type="text" id="ct-name" placeholder="e.g. Battle Royale #1"></div>
+    <div class="fg"><label>Date</label><input type="date" id="ct-date"></div>
+    <div class="fg"><label>Entry Fee (₹)</label><input type="number" id="ct-fee" placeholder="0 = Free" value="0"></div>
+    <div class="fg"><label>Prize Pool (₹)</label><input type="number" id="ct-prize" placeholder="Prize amount" value="0"></div>
+    <div class="fg"><label>Map</label>
+      <select id="ct-map"><option>Erangel</option><option>Miramar</option><option>Sanhok</option><option>Vikendi</option><option>Livik</option><option>Karakin</option><option>Nusa</option></select>
+    </div>
+    <div class="fg"><label>Type</label>
+      <select id="ct-type"><option value="solo">Solo</option><option value="duo">Duo</option><option value="squad">Squad</option></select>
+    </div>
+    <div class="fg"><label>Max Teams</label><input type="number" id="ct-max" value="24" min="2" max="100"></div>
+    <div class="btn-grp mt-8">
+      <button class="btn btn-p" onclick="createTournament()">✅ Create</button>
+      <button class="btn btn-s" onclick="closeModal('create-tournament')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Match -->
+<div class="modal-bg" id="modal-create-match">
+  <div class="modal">
+    <h2>🎮 Create Match</h2>
+    <div class="fg"><label>Tournament</label>
+      <select id="cm-tid"><option value="">Select tournament</option></select>
+    </div>
+    <div class="fg"><label>Match #</label><input type="number" id="cm-num" placeholder="1" value="1" min="1"></div>
+    <div class="fg"><label>🔑 Room ID</label><input type="text" id="cm-rid" placeholder="BGMI Room ID"></div>
+    <div class="fg"><label>🔒 Room Password</label><input type="text" id="cm-rpw" placeholder="Room Password"></div>
+    <div class="fg"><label>Date/Time</label><input type="datetime-local" id="cm-date"></div>
+    <div class="btn-grp mt-8">
+      <button class="btn btn-p" onclick="createMatch()">✅ Create</button>
+      <button class="btn btn-s" onclick="closeModal('create-match')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Join Tournament -->
+<div class="modal-bg" id="modal-join-tournament">
+  <div class="modal">
+    <h2>🎮 Join Tournament</h2>
+    <div id="joinContent"></div>
+  </div>
+</div>
+
+<!-- Submit Payment -->
+<div class="modal-bg" id="modal-payment">
+  <div class="modal">
+    <h2>💰 Submit Payment</h2>
+    <div id="paymentModalContent"></div>
+  </div>
+</div>
+
+<!-- View Match Details -->
+<div class="modal-bg" id="modal-match-details">
+  <div class="modal">
+    <h2>🎮 Match Details</h2>
+    <div id="matchDetailsContent"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// GAME WIN - BGMI Tournament App
+// Pure localStorage - No Firebase/CDN
+// ============================================================
+
+// ===== DATA =====
+let D = {
+  admin: { email: 'admin@gamewin.com', password: 'admin123' },
+  teams: [],
+  tournaments: [],
+  matches: [],
+  payments: [],
+  loggedIn: null
+};
+
+// ===== CONFIGURATION =====
+const CONFIG = {
+  ADMIN_UPI_ID: 'admin@upi',  // ← YEH BADALO (apna UPI ID daalo)
+  ADMIN_UPI_NAME: 'Game Win Admin',
+  HELP_PHONE: '919876543210',
+  HELP_WHATSAPP: '919876543210'
+};
+
+// ===== SAVE / LOAD =====
+function saveData(){
+  localStorage.setItem('gamewin-v1', JSON.stringify({
+    teams: D.teams,
+    tournaments: D.tournaments,
+    matches: D.matches,
+    payments: D.payments
+  }));
+}
+function loadData(){
+  try{
+    const raw = localStorage.getItem('gamewin-v1');
+    if(raw){
+      const p = JSON.parse(raw);
+      if(p.teams) D.teams = p.teams;
+      if(p.tournaments) D.tournaments = p.tournaments;
+      if(p.matches) D.matches = p.matches;
+      if(p.payments) D.payments = p.payments;
+    }
+    // Check for logged in session
+    const sess = localStorage.getItem('gamewin-session');
+    if(sess) D.loggedIn = JSON.parse(sess);
+  }catch(e){ console.warn('Load err:', e); }
+}
+
+// ===== TOAST =====
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ===== ID GEN =====
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ===== DATE FORMAT =====
+function fmtDate(d){
+  if(!d) return 'TBD';
+  try{ return new Date(d).toLocaleDateString('hi-IN', {day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; }
+}
+
+// ===== SAVE SESSION =====
+function saveSession(){
+  if(D.loggedIn) localStorage.setItem('gamewin-session', JSON.stringify(D.loggedIn));
+  else localStorage.removeItem('gamewin-session');
+}
+
+// ===== MODAL =====
+function openModal(id){
+  document.getElementById('modal-'+id).classList.add('show');
+  const sel = document.getElementById('cm-tid');
+  if(sel && id==='create-match') populateTournamentSelect(sel);
+}
+function closeModal(id){
+  document.getElementById('modal-'+id).classList.remove('show');
+}
+// Close on click outside
+document.querySelectorAll('.modal-bg').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); });
+});
+
+// ===== EYE BUTTON =====
+function togglePass(){
+  try{
+    var inp = document.getElementById('loginPass');
+    var btn = document.getElementById('loginEye');
+    if(!inp||!btn)return;
+    var pw = inp.type==='password';
+    inp.type = pw ? 'text' : 'password';
+    btn.textContent = pw ? '🙈' : '👁️';
+  }catch(e){}
+}
+function togglePassSignup(){
+  try{
+    var inp = document.getElementById('signupPass');
+    var btn = document.getElementById('signupEye');
+    if(!inp||!btn)return;
+    var pw = inp.type==='password';
+    inp.type = pw ? 'text' : 'password';
+    btn.textContent = pw ? '🙈' : '👁️';
+  }catch(e){}
+}
+// Backup event listeners
+(function(){
+  var le = document.getElementById('loginEye');
+  if(le){ le.addEventListener('click',togglePass); le.addEventListener('touchend',function(e){e.preventDefault();togglePass();});}
+  var se = document.getElementById('signupEye');
+  if(se){ se.addEventListener('click',togglePassSignup); se.addEventListener('touchend',function(e){e.preventDefault();togglePassSignup();});}
+})();
+
+// ===== AUTH =====
+function showSignup(){
+  document.getElementById('loginForm').classList.remove('active');
+  document.getElementById('signupForm').classList.add('active');
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('signupErr').style.display='none';
+}
+function showLogin(){
+  document.getElementById('signupForm').classList.remove('active');
+  document.getElementById('loginForm').classList.add('active');
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('signupErr').style.display='none';
+}
+
+function showErr(id, msg){
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function doLogin(){
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPass').value.trim();
+  if(!email||!pass){ showErr('loginErr','Email aur password daalo!'); return; }
+
+  // Check admin
+  if(email.toLowerCase()===D.admin.email.toLowerCase() && pass===D.admin.password){
+    D.loggedIn = { role:'admin', email: D.admin.email };
+    saveSession();
+    enterApp();
+    return;
+  }
+  // Check team
+  var team = D.teams.find(t => t.email.toLowerCase()===email.toLowerCase() && t.password===pass);
+  if(team){
+    D.loggedIn = { role:'team', id:team.id, name:team.name, email:team.email };
+    saveSession();
+    enterApp();
+    return;
+  }
+  showErr('loginErr','Email ya password galat hai!');
+}
+
+function doSignup(){
+  var name = document.getElementById('signupName').value.trim();
+  var email = document.getElementById('signupEmail').value.trim();
+  var phone = document.getElementById('signupPhone').value.trim();
+  var bgmi = document.getElementById('signupBgmi').value.trim();
+  var pass = document.getElementById('signupPass').value.trim();
+  if(!name||!email||!phone||!bgmi||!pass){ showErr('signupErr','Sab fields bharein!'); return; }
+  if(pass.length<6){ showErr('signupErr','Password minimum 6 characters!'); return; }
+  if(D.teams.find(t=>t.email.toLowerCase()===email.toLowerCase())){ showErr('signupErr','Ye email already registered hai!'); return; }
+  if(D.teams.find(t=>t.phone===phone)){ showErr('signupErr','Ye phone already registered hai!'); return; }
+
+  var team = {
+    id: uid(),
+    name: name,
+    email: email,
+    phone: phone,
+    bgmiName: bgmi,
+    password: pass,
+    points: 0,
+    joinedAt: new Date().toISOString()
+  };
+  D.teams.push(team);
+  saveData();
+
+  // Auto login
+  D.loggedIn = { role:'team', id:team.id, name:team.name, email:team.email };
+  saveSession();
+  toast('✅ Account ban gaya! Welcome '+name);
+  enterApp();
+}
+
+function doLogout(){
+  D.loggedIn = null;
+  saveSession();
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authScreen').style.display='';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPass').value='';
+  showLogin();
+}
+
+// ===== ENTER APP =====
+function enterApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='';
+  var isAdmin = D.loggedIn.role === 'admin';
+
+  document.getElementById('playerNav').style.display = isAdmin ? 'none' : '';
+  document.getElementById('adminNav').style.display = isAdmin ? '' : 'none';
+  document.getElementById('userInfo').textContent = isAdmin ? '👑 Admin' : '🎮 '+D.loggedIn.name;
+
+  // Setup bottom nav
+  var navs = document.querySelectorAll(isAdmin ? '#adminNav .btm-nav, .btm-nav#adminNav .btm-nav' : '#playerNav .btm-nav, .btm-nav#playerNav');
+  document.querySelectorAll(isAdmin ? '#adminNav button' : '#playerNav button').forEach(b=>{
+    b.addEventListener('click', function(){
+      go(this.dataset.page);
+    });
+  });
+
+  go(isAdmin ? 'admin-dash' : 'home');
+}
+
+// ===== PAGE NAV =====
+var currentPage = '';
+function go(page){
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  var target = document.getElementById('page-'+page);
+  if(target) target.classList.add('active');
+
+  // Update nav active
+  var navBtns = document.querySelectorAll(
+    page.startsWith('admin') ? '#adminNav button' : '#playerNav button'
+  );
+  navBtns.forEach(b=>{
+    b.classList.toggle('active', b.dataset.page===page);
+  });
+
+  renderPage(page);
+}
+
+function renderPage(page){
+  switch(page){
+    case 'home': renderHome(); break;
+    case 'tournaments': renderTournaments(); break;
+    case 'matches': renderMatches(); break;
+    case 'payments': renderPayments(); break;
+    case 'leaderboard': renderLeaderboard(); break;
+    case 'help': renderHelp(); break;
+    case 'admin-dash': renderAdminDash(); break;
+    case 'admin-tournaments': renderAdminTournaments(); break;
+    case 'admin-teams': renderAdminTeams(); break;
+    case 'admin-matches': renderAdminMatches(); break;
+    case 'admin-payments': renderAdminPayments(); break;
+    case 'admin-leaderboard': renderAdminLeaderboard(); break;
+    case 'admin-broadcast': renderAdminBroadcast(); break;
+  }
+}
+
+// ============================================================
+// PLAYER PAGES
+// ============================================================
+
+function renderHome(){
+  var h = '';
+  var team = D.teams.find(t => t.id === D.loggedIn.id);
+  if(!team && D.loggedIn.role==='team'){ h='<p class="text-dim">Player data not found. Please re-login.</p>'; return; }
+
+  var activeEvents = D.tournaments.filter(t => t.status !== 'completed');
+  var upcomingMatches = D.matches.filter(m => !m.completed);
+  var p = D.payments.filter(pm => pm.teamId===D.loggedIn.id && pm.status==='approved').length;
+
+  h = '<div class="card"><h3>👋 Welcome, '+D.loggedIn.name+'!</h3>';
+  h += '<div class="row"><span class="label">Points</span><span style="color:var(--acc);font-weight:700">'+ (team ? team.points||0 : 0)+'</span></div>';
+  h += '<div class="row"><span class="label">Active Events</span><span>'+ activeEvents.length +'</span></div>';
+  h += '<div class="row"><span class="label">Upcoming Matches</span><span>'+ upcomingMatches.length +'</span></div>';
+  h += '<div class="row"><span class="label">Payments Done</span><span>'+ p +'</span></div></div>';
+
+  if(D.tournaments.length===0){
+    h += '<div class="card text-center text-dim">Abhi koi tournament nahi hai. Baad me check karo!</div>';
+  } else {
+    D.tournaments.forEach(t => {
+      var joined = D.payments.find(pm => pm.tid===t.id && pm.teamId===D.loggedIn.id && pm.status==='approved');
+      h += '<div class="card">';
+      h += '<div class="flex"><h3>'+t.name+'</h3> <span class="badge badge-'+t.status+'">'+t.status+'</span></div>';
+      h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
+      h += '<div class="row"><span class="label">🏆 Prize ₹'+t.prize+'</span><span>🎯 '+t.type+'</span></div>';
+      if(!joined && t.status !== 'completed'){
+        h += '<button class="btn btn-p btn-sm mt-8" onclick="openJoin(\''+t.id+'\')">🎮 Join</button>';
+      } else if(joined) {
+        h += '<span class="badge badge-approved mt-8">✅ Joined</span>';
+      }
+      h += '</div>';
+    });
+  }
+
+  // My joined tournaments
+  var myTids = D.payments.filter(pm => pm.teamId===D.loggedIn.id && pm.status==='approved').map(pm => pm.tid);
+  var myTournaments = D.tournaments.filter(t => myTids.includes(t.id));
+  if(myTournaments.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">🎯 My Tournaments</h3>';
+    myTournaments.forEach(t => {
+      h += '<div class="card"><div class="flex"><span>'+t.name+'</span><span class="badge badge-'+t.status+'">'+t.status+'</span></div></div>';
+    });
+  }
+
+  document.getElementById('homeContent').innerHTML = h;
+}
+
+function openJoin(tid){
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+  var el = document.getElementById('joinContent');
+  el.innerHTML = '<h3>'+t.name+'</h3>';
+  el.innerHTML += '<div class="row"><span class="label">Fee</span><span>₹'+t.fee+'</span></div>';
+  el.innerHTML += '<div class="row"><span class="label">Type</span><span>'+t.type+'</span></div>';
+  el.innerHTML += '<div class="row"><span class="label">Prize</span><span>₹'+t.prize+'</span></div>';
+
+  if(parseInt(t.fee) > 0){
+    el.innerHTML += '<p class="mt-8 text-dim">Payment karna hoga. Payment page me jayen.</p>';
+    el.innerHTML += '<button class="btn btn-g btn-full mt-8" onclick="closeModal(\'join-tournament\');go(\'payments\')">💰 Go to Payment</button>';
+  } else {
+    el.innerHTML += '<p class="mt-8 text-green">✅ Free tournament! Direct join.</p>';
+    el.innerHTML += '<button class="btn btn-p btn-full mt-8" onclick="freeJoin(\''+tid+'\')">✅ Join Free</button>';
+  }
+  openModal('join-tournament');
+}
+
+function freeJoin(tid){
+  D.payments.push({
+    id: uid(),
+    tid: tid,
+    teamId: D.loggedIn.id,
+    teamName: D.loggedIn.name,
+    utr: 'FREE',
+    amount: 0,
+    status: 'approved',
+    timestamp: new Date().toISOString()
+  });
+  saveData();
+  toast('✅ Free join ho gaya!');
+  closeModal('join-tournament');
+  renderPage(currentPage);
+}
+
+// Tournaments Page
+function renderTournaments(){
+  var h = '';
+  if(D.tournaments.length===0){
+    h = '<div class="card text-center text-dim">Koi tournament nahi hai.</div>';
+  } else {
+    D.tournaments.forEach(t => {
+      var joined = D.payments.find(pm => pm.tid===t.id && pm.teamId===D.loggedIn.id && pm.status==='approved');
+      h += '<div class="card">';
+      h += '<div class="flex"><h3>'+t.name+'</h3> <span class="badge badge-'+t.status+'">'+t.status+'</span></div>';
+      h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
+      h += '<div class="row"><span class="label">🏆 Prize ₹'+t.prize+'</span><span>🎯 '+t.type+' / Max: '+t.maxTeams+'</span></div>';
+      h += '<div class="row"><span class="label">Map: '+t.map+'</span></div>';
+      if(!joined && t.status !== 'completed'){
+        h += '<button class="btn btn-p btn-sm mt-8" onclick="openJoin(\''+t.id+'\')">🎮 Join Now</button>';
+      } else if(joined) {
+        h += '<span class="badge badge-approved mt-8">✅ Joined</span>';
+      }
+      h += '</div>';
+    });
+  }
+  document.getElementById('tournamentList').innerHTML = h;
+}
+
+// Matches Page
+function renderMatches(){
+  var h = '';
+  var myTids = D.payments.filter(pm => pm.teamId===D.loggedIn.id && pm.status==='approved').map(pm => pm.tid);
+  var myMatches = D.matches.filter(m => myTids.includes(m.tid));
+
+  if(myMatches.length===0){
+    h = '<div class="card text-center text-dim">Abhi koi match nahi hai. Join a tournament first!</div>';
+  } else {
+    myMatches.forEach(m => {
+      var t = D.tournaments.find(x => x.id===m.tid);
+      h += '<div class="card" onclick="openMatchDetails(\''+m.id+'\')" style="cursor:pointer">';
+      h += '<div class="flex"><h3>'+ (t?t.name:'Tournament') +' - Match #'+m.num+'</h3>';
+      h += m.completed ? '<span class="badge badge-completed">Done</span>' : '<span class="badge badge-ongoing">Upcoming</span>';
+      h += '</div>';
+      h += '<div class="row"><span class="label">📅 '+fmtDate(m.date)+'</span></div>';
+      if(m.rid) h += '<div class="row"><span class="label">🔑 Room: '+m.rid+'</span></div>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('matchesList').innerHTML = h;
+}
+
+function openMatchDetails(mid){
+  var m = D.matches.find(x => x.id===mid);
+  if(!m) return;
+  var t = D.tournaments.find(x => x.id===m.tid);
+  var el = document.getElementById('matchDetailsContent');
+  el.innerHTML = '<h3>'+ (t?t.name:'Tournament') +' - Match #'+m.num+'</h3>';
+  el.innerHTML += '<div class="row mt-8"><span class="label">📅 Date</span><span>'+ fmtDate(m.date) +'</span></div>';
+  el.innerHTML += '<div class="row"><span class="label">🔑 Room ID</span><span style="font-family:monospace;color:var(--acc);font-size:1.1em">'+ (m.rid||'TBA') +'</span></div>';
+  el.innerHTML += '<div class="row"><span class="label">🔒 Password</span><span style="font-family:monospace;color:var(--acc);font-size:1.1em">'+ (m.rpw||'TBA') +'</span></div>';
+
+  if(m.rid){
+    el.innerHTML += '<button class="btn btn-g btn-full mt-8" onclick="copyMatchInfo(\''+m.id+'\')">📋 Copy Room Info</button>';
+  }
+  el.innerHTML += '<button class="btn btn-s btn-full mt-8" onclick="closeModal(\'match-details\')">Close</button>';
+  openModal('match-details');
+}
+
+function copyMatchInfo(mid){
+  var m = D.matches.find(x => x.id===mid);
+  if(!m) return;
+  var t = D.tournaments.find(x => x.id===m.tid);
+  var text = '🎮 '+(t?t.name:'')+' Match #'+m.num+'\n🔑 Room: '+m.rid+'\n🔒 Pass: '+m.rpw;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('📋 Copied!')).catch(()=>{});
+  } else {
+    toast('📋 '+text);
+  }
+}
+
+// Payments Page
+function renderPayments(){
+  var h = '';
+  h += '<div class="card">';
+  h += '<h3>💳 UPI Payment</h3>';
+  h += '<div class="row"><span class="label">UPI ID</span><span style="color:var(--acc);font-weight:700">'+CONFIG.ADMIN_UPI_ID+'</span></div>';
+  h += '<div class="row"><span class="label">Name</span><span>'+CONFIG.ADMIN_UPI_NAME+'</span></div>';
+  h += '<button class="btn btn-b btn-full mt-8" onclick="copyUPI()">📋 Copy UPI ID</button>';
+  h += '</div>';
+
+  // Select tournament for payment
+  var unpaidEvents = D.tournaments.filter(t => {
+    if(t.status==='completed') return false;
+    var paid = D.payments.find(pm => pm.tid===t.id && pm.teamId===D.loggedIn.id);
+    return !paid;
+  });
+
+  if(unpaidEvents.length>0){
+    h += '<div class="card">';
+    h += '<h3>📝 Submit Payment</h3>';
+    h += '<div class="fg"><label>Event</label><select id="pay-tid">';
+    unpaidEvents.forEach(t => {
+      h += '<option value="'+t.id+'">'+t.name+' - ₹'+t.fee+'</option>';
+    });
+    h += '</select></div>';
+    h += '<div class="fg"><label>UTR Number</label><input type="text" id="pay-utr" placeholder="UPI transaction UTR number"></div>';
+    h += '<div class="fg"><label>Screenshot (optional)</label><input type="file" id="pay-ss" accept="image/*"></div>';
+    h += '<button class="btn btn-g btn-full" onclick="submitPayment()">✅ Submit Payment Proof</button>';
+    h += '</div>';
+  }
+
+  // Payment history
+  var myPayments = D.payments.filter(pm => pm.teamId===D.loggedIn.id);
+  if(myPayments.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">📜 Payment History</h3>';
+    myPayments.forEach(pm => {
+      var t = D.tournaments.find(x => x.id===pm.tid);
+      h += '<div class="card">';
+      h += '<div class="flex"><span>'+ (t?t.name:'Event') +'</span><span class="badge badge-'+pm.status+'">'+pm.status+'</span></div>';
+      h += '<div class="row"><span class="label">UTR: '+pm.utr+'</span><span>₹'+pm.amount+'</span></div>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('paymentsContent').innerHTML = h;
+}
+
+function copyUPI(){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(CONFIG.ADMIN_UPI_ID).then(()=>toast('📋 UPI ID copied!'));
+  } else {
+    toast('📋 UPI: '+CONFIG.ADMIN_UPI_ID);
+  }
+}
+
+function submitPayment(){
+  var tid = document.getElementById('pay-tid').value;
+  var utr = document.getElementById('pay-utr').value.trim();
+  if(!utr){ toast('❌ UTR number daalo!'); return; }
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+
+  D.payments.push({
+    id: uid(),
+    tid: tid,
+    teamId: D.loggedIn.id,
+    teamName: D.loggedIn.name,
+    utr: utr,
+    amount: parseInt(t.fee) || 0,
+    status: 'pending',
+    timestamp: new Date().toISOString()
+  });
+  saveData();
+  toast('✅ Payment submitted! Admin verify karega.');
+  renderPage(currentPage);
+}
+
+// Leaderboard
+function renderLeaderboard(){
+  var h = '';
+  var sorted = [...D.teams].sort((a,b) => (b.points||0) - (a.points||0));
+  if(sorted.length===0){
+    h = '<div class="card text-center text-dim">Abhi koi player nahi hai.</div>';
+  } else {
+    h += '<div class="card" style="padding:8px 14px;background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,107,53,.05));border-color:var(--acc)">';
+    h += '<div class="flex"><span style="font-weight:700;flex:1">Player</span><span style="font-weight:700;color:var(--acc)">Points</span></div></div>';
+    sorted.forEach((team, i) => {
+      var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+      h += '<div class="card" style="padding:10px 14px">';
+      h += '<div class="flex">';
+      h += '<span style="font-size:1.1em;width:30px">'+medal+'</span>';
+      h += '<span style="flex:1;font-weight:600">'+team.name+'</span>';
+      h += '<span style="color:var(--acc);font-weight:700">'+ (team.points||0) +'</span>';
+      h += '</div></div>';
+    });
+  }
+  document.getElementById('leaderboardContent').innerHTML = h;
+}
+
+// Help Page
+function renderHelp(){
+  var h = '';
+  h += '<div class="card">';
+  h += '<h3>🆘 Payment Issue?</h3>';
+  h += '<p>Agar payment me koi problem ho toh hume contact karo:</p>';
+  h += '<div class="mt-8"><div class="row"><span class="label">📞 Phone</span><span>'+CONFIG.HELP_PHONE+'</span></div>';
+  h += '<div class="row"><span class="label">💬 WhatsApp</span><span>'+CONFIG.HELP_WHATSAPP+'</span></div></div>';
+  h += '<button class="btn btn-w btn-full mt-8" onclick="openWhatsApp()">💬 WhatsApp Contact</button>';
+  h += '</div>';
+
+  h += '<div class="card">';
+  h += '<h3>❓ FAQ</h3>';
+  h += '<div class="mt-8 text-dim">';
+  h += '<p><b>• Tournament kaise join karein?</b><br>Event me jaao → Join click karo → Payment karo → Admin approve karega.</p><br>';
+  h += '<p><b>• Payment kaise karein?</b><br>UPI ID copy karo → kisi bhi UPI app se pay karo → UTR daalo → Submit karo.</p><br>';
+  h += '<p><b>• Room ID kaise milega?</b><br>Matches page me check karo. Admin room ID add karega.</p><br>';
+  h += '<p><b>• Points kaise milte hain?</b><br>Admin match ke baad points assign karta hai.</p>';
+  h += '</div></div>';
+
+  h += '<div class="card">';
+  h += '<h3>📧 Report Issue</h3>';
+  h += '<div class="fg"><label>Issue describe karo</label><textarea id="help-msg" placeholder="Kya problem hai?"></textarea></div>';
+  h += '<button class="btn btn-p btn-full" onclick="submitHelp()">📤 Send</button>';
+  h += '</div>';
+
+  document.getElementById('helpContent').innerHTML = h;
+}
+
+function openWhatsApp(){
+  window.open('https://wa.me/'+CONFIG.HELP_WHATSAPP, '_blank');
+}
+
+function submitHelp(){
+  var msg = document.getElementById('help-msg').value.trim();
+  if(!msg){ toast('❌ Kuch likho pehle!'); return; }
+  var text = encodeURIComponent('Help Request from '+D.loggedIn.name+':\n'+msg);
+  window.open('https://wa.me/'+CONFIG.HELP_WHATSAPP+'?text='+text, '_blank');
+  toast('✅ WhatsApp open hua!');
+}
+
+// ============================================================
+// ADMIN PAGES
+// ============================================================
+
+function renderAdminDash(){
+  var h = '';
+  h += '<div class="card"><h3>📊 Dashboard</h3>';
+  h += '<div class="row"><span class="label">👥 Total Players</span><span>'+D.teams.length+'</span></div>';
+  h += '<div class="row"><span class="label">🏆 Tournaments</span><span>'+D.tournaments.length+'</span></div>';
+  h += '<div class="row"><span class="label">🎮 Matches</span><span>'+D.matches.length+'</span></div>';
+  h += '<div class="row"><span class="label">💰 Pending Payments</span><span style="color:#ff4655;font-weight:700">'+D.payments.filter(p=>p.status==='pending').length+'</span></div>';
+  h += '</div>';
+
+  // Quick actions
+  h += '<div class="card">';
+  h += '<h3>⚡ Quick Actions</h3>';
+  h += '<div class="btn-grp mt-8">';
+  h += '<button class="btn btn-p btn-sm" onclick="openModal(\'create-tournament\')">🏆 Create Event</button>';
+  h += '<button class="btn btn-p btn-sm" onclick="openModal(\'create-match\')">🎮 Create Match</button>';
+  h += '</div>';
+  h += '<button class="btn btn-g btn-sm btn-full mt-8" onclick="go(\'admin-payments\')">💰 Verify Payments ('+D.payments.filter(p=>p.status==='pending').length+')</button>';
+  h += '</div>';
+
+  // Recent payments
+  var pending = D.payments.filter(p => p.status==='pending').slice(-5).reverse();
+  if(pending.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">⏳ Pending Payments</h3>';
+    pending.forEach(pm => {
+      var t = D.tournaments.find(x => x.id===pm.tid);
+      h += '<div class="card" style="padding:10px">';
+      h += '<div class="flex"><span>'+pm.teamName+'</span><span class="badge badge-pending">Pending</span></div>';
+      h += '<div class="row"><span class="label">'+ (t?t.name:'Event') +'</span><span>UTR: '+pm.utr+'</span></div>';
+      h += '<div class="btn-grp mt-8">';
+      h += '<button class="btn btn-g btn-sm" onclick="approvePay(\''+pm.id+'\')">✅ Approve</button>';
+      h += '<button class="btn btn-r btn-sm" onclick="rejectPay(\''+pm.id+'\')">❌ Reject</button>';
+      h += '</div></div>';
+    });
+  }
+
+  document.getElementById('adminDashContent').innerHTML = h;
+}
+
+// Admin Tournaments
+function renderAdminTournaments(){
+  var h = '';
+  if(D.tournaments.length===0){
+    h = '<div class="card text-center text-dim">Koi tournament nahi hai. Create karo!</div>';
+  } else {
+    D.tournaments.forEach(t => {
+      var teamCount = new Set(D.payments.filter(pm => pm.tid===t.id && pm.status==='approved').map(pm => pm.teamId)).size;
+      h += '<div class="card">';
+      h += '<div class="flex"><h3>'+t.name+'</h3>';
+      h += '<select onchange="changeStatus(\''+t.id+'\',this.value)" style="background:var(--bg);border:1px solid var(--brd);color:var(--text);border-radius:4px;padding:2px 6px;font-size:.8em">';
+      h += '<option value="upcoming" '+(t.status==='upcoming'?'selected':'')+'>Upcoming</option>';
+      h += '<option value="ongoing" '+(t.status==='ongoing'?'selected':'')+'>Ongoing</option>';
+      h += '<option value="completed" '+(t.status==='completed'?'selected':'')+'>Completed</option>';
+      h += '</select></div>';
+      h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
+      h += '<div class="row"><span class="label">🏆 ₹'+t.prize+'</span><span>🎯 '+t.type+'</span></div>';
+      h += '<div class="row"><span class="label">👥 Teams: '+teamCount+'/'+t.maxTeams+'</span><span>🗺️ '+t.map+'</span></div>';
+      h += '<button class="btn btn-s btn-sm mt-8" onclick="deleteTournament(\''+t.id+'\')">🗑️ Delete</button>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('adminTournamentList').innerHTML = h;
+}
+
+function changeStatus(tid, status){
+  var t = D.tournaments.find(x => x.id===tid);
+  if(t){ t.status = status; saveData(); renderPage(currentPage); toast('✅ Status updated!'); }
+}
+
+function deleteTournament(tid){
+  if(!confirm('Delete this tournament?')) return;
+  D.tournaments = D.tournaments.filter(x => x.id!==tid);
+  D.matches = D.matches.filter(m => m.tid!==tid);
+  D.payments = D.payments.filter(p => p.tid!==tid);
+  saveData();
+  renderPage(currentPage);
+  toast('🗑️ Deleted!');
+}
+
+// Admin Teams
+function renderAdminTeams(){
+  var h = '';
+  if(D.teams.length===0){
+    h = '<div class="card text-center text-dim">Koi player registered nahi hai.</div>';
+  } else {
+    D.teams.forEach(t => {
+      var joined = D.payments.filter(pm => pm.teamId===t.id && pm.status==='approved');
+      h += '<div class="card" style="padding:10px">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+t.name+'</span><span style="color:var(--acc);font-weight:700">'+ (t.points||0) +' pts</span></div>';
+      h += '<div class="row"><span class="label">📧 '+t.email+'</span></div>';
+      h += '<div class="row"><span class="label">📞 '+t.phone+'</span><span>🎮 '+t.bgmiName+'</span></div>';
+      h += '<div class="row"><span class="label">Joined: '+fmtDate(t.joinedAt)+'</span><span>Events: '+joined.length+'</span></div>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('adminTeamsList').innerHTML = h;
+}
+
+// Admin Matches
+function renderAdminMatches(){
+  var h = '';
+  if(D.matches.length===0){
+    h = '<div class="card text-center text-dim">Koi match nahi hai.</div>';
+  } else {
+    D.matches.forEach(m => {
+      var t = D.tournaments.find(x => x.id===m.tid);
+      h += '<div class="card">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+ (t?t.name:'?') +' - Match #'+m.num+'</span>';
+      h += m.completed ? '<span class="badge badge-completed">Done</span>' : '<span class="badge badge-ongoing">Active</span>';
+      h += '</div>';
+      h += '<div class="row"><span class="label">🔑 '+ (m.rid||'TBA') +'</span><span>🔒 '+ (m.rpw||'TBA') +'</span></div>';
+      h += '<div class="row"><span class="label">📅 '+fmtDate(m.date)+'</span></div>';
+      h += '<div class="btn-grp mt-8">';
+      if(!m.completed){
+        h += '<button class="btn btn-g btn-sm" onclick="completeMatch(\''+m.id+'\')">✅ Complete</button>';
+      }
+      h += '<button class="btn btn-r btn-sm" onclick="deleteMatch(\''+m.id+'\')">🗑️ Delete</button>';
+      h += '</div></div>';
+    });
+  }
+  document.getElementById('adminMatchesList').innerHTML = h;
+}
+
+function completeMatch(mid){
+  var m = D.matches.find(x => x.id===mid);
+  if(m){ m.completed = true; saveData(); renderPage(currentPage); toast('✅ Match completed!'); }
+}
+
+function deleteMatch(mid){
+  if(!confirm('Delete this match?')) return;
+  D.matches = D.matches.filter(x => x.id!==mid);
+  saveData();
+  renderPage(currentPage);
+  toast('🗑️ Deleted!');
+}
+
+function populateTournamentSelect(sel){
+  var vals = '';
+  D.tournaments.filter(t => t.status!=='completed').forEach(t => {
+    vals += '<option value="'+t.id+'">'+t.name+'</option>';
+  });
+  sel.innerHTML = '<option value="">Select tournament</option>'+vals;
+}
+
+// Admin Payments
+function renderAdminPayments(){
+  var h = '';
+  var pending = D.payments.filter(p => p.status==='pending');
+  var others = D.payments.filter(p => p.status!=='pending');
+
+  if(pending.length===0 && others.length===0){
+    h = '<div class="card text-center text-dim">Koi payment request nahi hai.</div>';
+  }
+
+  if(pending.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin-bottom:6px">⏳ Pending ('+pending.length+')</h3>';
+    pending.forEach(pm => {
+      var t = D.tournaments.find(x => x.id===pm.tid);
+      h += '<div class="card" style="border-color:rgba(255,70,85,.3)">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+pm.teamName+'</span><span class="badge badge-pending">Pending</span></div>';
+      h += '<div class="row"><span class="label">Event: '+ (t?t.name:'?') +'</span><span>₹'+pm.amount+'</span></div>';
+      if(pm.utr!=='FREE'){
+        h += '<div class="row"><span class="label">UTR: '+pm.utr+'</span></div>';
+      }
+      h += '<div class="btn-grp mt-8">';
+      h += '<button class="btn btn-g btn-sm" onclick="approvePay(\''+pm.id+'\')">✅ Approve</button>';
+      h += '<button class="btn btn-r btn-sm" onclick="rejectPay(\''+pm.id+'\')">❌ Reject</button>';
+      h += '<button class="btn btn-w btn-sm" onclick="notifyPay(\''+pm.id+'\')">💬 WhatsApp</button>';
+      h += '</div></div>';
+    });
+  }
+
+  if(others.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">📜 History</h3>';
+    others.forEach(pm => {
+      var t = D.tournaments.find(x => x.id===pm.tid);
+      h += '<div class="card" style="padding:8px">';
+      h += '<div class="flex"><span style="flex:1">'+pm.teamName+'</span><span class="badge badge-'+pm.status+'">'+pm.status+'</span></div>';
+      h += '<div class="row"><span class="label">'+ (t?t.name:'') +' - '+pm.utr+'</span></div>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('adminPaymentsList').innerHTML = h;
+}
+
+function approvePay(pid){
+  var pm = D.payments.find(x => x.id===pid);
+  if(pm){ pm.status = 'approved'; saveData(); renderPage(currentPage); toast('✅ Payment approved!'); }
+}
+function rejectPay(pid){
+  var pm = D.payments.find(x => x.id===pid);
+  if(pm){ pm.status = 'rejected'; saveData(); renderPage(currentPage); toast('❌ Payment rejected!'); }
+}
+function notifyPay(pid){
+  var pm = D.payments.find(x => x.id===pid);
+  if(!pm) return;
+  var t = D.tournaments.find(x => x.id===pm.tid);
+  var text = encodeURIComponent('Hi '+pm.teamName+', payment update for '+(t?t.name:'tournament')+'. UTR: '+pm.utr+'. Status: '+pm.status);
+  window.open('https://wa.me/'+CONFIG.HELP_WHATSAPP+'?text='+text, '_blank');
+}
+
+// Admin Leaderboard
+function renderAdminLeaderboard(){
+  var h = '';
+  h += '<div class="card">';
+  h += '<h3>⚡ Assign Points</h3>';
+  h += '<div class="fg"><label>Player</label><select id="ap-team">';
+  D.teams.forEach(t => {
+    h += '<option value="'+t.id+'">'+t.name+' ('+(t.points||0)+' pts)</option>';
+  });
+  h += '</select></div>';
+  h += '<div class="fg"><label>Points</label><input type="number" id="ap-points" placeholder="0" value="0" min="0"></div>';
+  h += '<button class="btn btn-p btn-full" onclick="addPoints()">✅ Add Points</button>';
+  h += '</div>';
+
+  var sorted = [...D.teams].sort((a,b) => (b.points||0) - (a.points||0));
+  if(sorted.length>0){
+    h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">📊 Standings</h3>';
+    sorted.forEach((team, i) => {
+      var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+      h += '<div class="card" style="padding:8px 12px">';
+      h += '<div class="flex"><span style="width:28px">'+medal+'</span><span style="flex:1">'+team.name+'</span><span style="color:var(--acc);font-weight:700">'+ (team.points||0) +'</span></div>';
+      h += '</div>';
+    });
+  }
+  document.getElementById('adminLeaderboardContent').innerHTML = h;
+}
+
+function addPoints(){
+  var tid = document.getElementById('ap-team').value;
+  var pts = parseInt(document.getElementById('ap-points').value) || 0;
+  if(!pts){ toast('❌ Points daalo!'); return; }
+  var team = D.teams.find(t => t.id===tid);
+  if(team){ team.points = (team.points||0) + pts; saveData(); renderPage(currentPage); toast('✅ '+pts+' points added to '+team.name+'!'); }
+}
+
+// Admin Broadcast
+function renderAdminBroadcast(){
+  var h = '';
+  var awaiting = D.tournaments.filter(t => t.status!=='completed');
+
+  h += '<div class="card">';
+  h += '<h3>📢 Send Room ID</h3>';
+  h += '<div class="fg"><label>Tournament</label><select id="bc-tid">';
+  awaiting.forEach(t => { h += '<option value="'+t.id+'">'+t.name+'</option>'; });
+  h += '</select></div>';
+  h += '<div class="fg"><label>Room ID</label><input type="text" id="bc-rid" placeholder="Room ID"></div>';
+  h += '<div class="fg"><label>Password</label><input type="text" id="bc-rpw" placeholder="Room Password"></div>';
+  h += '<div class="fg"><label>Match #</label><input type="number" id="bc-num" value="1" min="1"></div>';
+  h += '<button class="btn btn-p btn-full" onclick="broadcastRoom()">📢 Send to All Players</button>';
+  h += '</div>';
+
+  h += '<div class="card">';
+  h += '<h3>🔢 All Players</h3>';
+  D.teams.forEach(t => {
+    h += '<div class="row" style="padding:4px 0"><span style="flex:1">'+t.name+'</span><span>📞 '+t.phone+'</span></div>';
+  });
+  h += '</div>';
+
+  document.getElementById('broadcastContent').innerHTML = h;
+}
+
+function broadcastRoom(){
+  var tid = document.getElementById('bc-tid').value;
+  var rid = document.getElementById('bc-rid').value.trim();
+  var rpw = document.getElementById('bc-rpw').value.trim();
+  var num = parseInt(document.getElementById('bc-num').value) || 1;
+  if(!rid){ toast('❌ Room ID daalo!'); return; }
+  if(!tid){ toast('❌ Tournament select karo!'); return; }
+
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+
+  // Also add as a match
+  D.matches.push({
+    id: uid(),
+    tid: tid,
+    num: num,
+    rid: rid,
+    rpw: rpw || '',
+    date: new Date().toISOString().slice(0,10),
+    completed: false
+  });
+  saveData();
+
+  var players = D.payments.filter(pm => pm.tid===tid && pm.status==='approved');
+  var msg = encodeURIComponent('🎮 Match Update!\n'+t.name+' - Match #'+num+'\n🔑 Room: '+rid+'\n🔒 Pass: '+(rpw||'N/A')+'\n\nGood luck! 🏆');
+  toast('✅ Match created! '+(players.length>0?'WhatsApp group bhej rahe hain...':'Koi player joined nahi hai.'));
+
+  renderPage(currentPage);
+}
+
+// ============================================================
+// CREATE OPERATIONS
+// ============================================================
+
+function createTournament(){
+  var name = document.getElementById('ct-name').value.trim();
+  var date = document.getElementById('ct-date').value;
+  var fee = parseInt(document.getElementById('ct-fee').value) || 0;
+  var prize = parseInt(document.getElementById('ct-prize').value) || 0;
+  var map = document.getElementById('ct-map').value;
+  var type = document.getElementById('ct-type').value;
+  var maxTeams = parseInt(document.getElementById('ct-max').value) || 24;
+  if(!name){ toast('❌ Name daalo!'); return; }
+
+  D.tournaments.push({
+    id: uid(),
+    name: name,
+    date: date,
+    fee: fee,
+    prize: prize,
+    map: map,
+    type: type,
+    maxTeams: maxTeams,
+    status: 'upcoming',
+    createdAt: new Date().toISOString()
+  });
+  saveData();
+  closeModal('create-tournament');
+  // Clear form
+  document.getElementById('ct-name').value='';
+  document.getElementById('ct-date').value='';
+  document.getElementById('ct-fee').value='0';
+  document.getElementById('ct-prize').value='0';
+  document.getElementById('ct-max').value='24';
+  toast('✅ Tournament created!');
+  renderPage(currentPage);
+}
+
+function createMatch(){
+  var tid = document.getElementById('cm-tid').value;
+  var num = parseInt(document.getElementById('cm-num').value) || 1;
+  var rid = document.getElementById('cm-rid').value.trim();
+  var rpw = document.getElementById('cm-rpw').value.trim();
+  var date = document.getElementById('cm-date').value;
+  if(!tid){ toast('❌ Tournament select karo!'); return; }
+  if(!rid){ toast('❌ Room ID daalo!'); return; }
+
+  D.matches.push({
+    id: uid(),
+    tid: tid,
+    num: num,
+    rid: rid,
+    rpw: rpw || '',
+    date: date,
+    completed: false
+  });
+  saveData();
+  closeModal('create-match');
+  document.getElementById('cm-rid').value='';
+  document.getElementById('cm-rpw').value='';
+  document.getElementById('cm-num').value='1';
+  toast('✅ Match created!');
+  renderPage(currentPage);
+}
+
+// ============================================================
+// ENTER KEY SUPPORT
+// ============================================================
+document.addEventListener('keydown', function(e){
+  if(e.key==='Enter'){
+    var a = document.activeElement;
+    if(document.getElementById('authScreen').style.display!=='none'){
+      if(document.getElementById('loginForm').classList.contains('active')){
+        if(a.id==='loginEmail'||a.id==='loginPass') doLogin();
+      } else {
+        if(a.id==='signupName'||a.id==='signupEmail'||a.id==='signupPhone'||a.id==='signupBgmi'||a.id==='signupPass') doSignup();
+      }
+    }
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+
+// If already logged in, enter app
+if(D.loggedIn){
+  enterApp();
+}
+</script>
+</body>
+</html>

@@ -161,6 +161,9 @@ a{color:var(--acc);text-decoration:none;}
       <div class="fg"><label>BGMI Name</label>
         <input type="text" id="signupBgmi" placeholder="In-game name">
       </div>
+      <div class="fg"><label>BGMI ID</label>
+        <input type="text" id="signupBgmiId" placeholder="Your BGMI player ID (optional)">
+      </div>
       <div class="fg"><label>Password</label>
         <div class="pass-wrap">
           <input type="password" id="signupPass" placeholder="Password (min 6 chars)" autocomplete="new-password">
@@ -296,7 +299,7 @@ a{color:var(--acc);text-decoration:none;}
   <div class="modal">
     <h2>🏆 Create Tournament</h2>
     <div class="fg"><label>Name</label><input type="text" id="ct-name" placeholder="e.g. Battle Royale #1"></div>
-    <div class="fg"><label>Date</label><input type="date" id="ct-date"></div>
+    <div class="fg"><label>Date & Time</label><input type="datetime-local" id="ct-date"></div>
     <div class="fg"><label>Entry Fee (₹)</label><input type="number" id="ct-fee" placeholder="0 = Free" value="0"></div>
     <div class="fg"><label>Prize Pool (₹)</label><input type="number" id="ct-prize" placeholder="Prize amount" value="0"></div>
     <div class="fg"><label>Map</label>
@@ -423,7 +426,12 @@ function uid(){ return Date.now().toString(36) + Math.random().toString(36).slic
 // ===== DATE FORMAT =====
 function fmtDate(d){
   if(!d) return 'TBD';
-  try{ return new Date(d).toLocaleDateString('hi-IN', {day:'numeric',month:'short',year:'numeric'}); }catch(e){ return d; }
+  try{
+    var dt = new Date(d);
+    var datePart = dt.toLocaleDateString('hi-IN', {day:'numeric',month:'short',year:'numeric'});
+    var timePart = dt.getHours() + ':' + String(dt.getMinutes()).padStart(2,'0');
+    return datePart + ' ' + timePart;
+  }catch(e){ return d; }
 }
 
 // ===== SAVE SESSION =====
@@ -523,6 +531,7 @@ function doSignup(){
   var email = document.getElementById('signupEmail').value.trim();
   var phone = document.getElementById('signupPhone').value.trim();
   var bgmi = document.getElementById('signupBgmi').value.trim();
+  var bgmiId = document.getElementById('signupBgmiId').value.trim();
   var pass = document.getElementById('signupPass').value.trim();
   if(!name||!email||!phone||!bgmi||!pass){ showErr('signupErr','Sab fields bharein!'); return; }
   if(pass.length<6){ showErr('signupErr','Password minimum 6 characters!'); return; }
@@ -535,6 +544,7 @@ function doSignup(){
     email: email,
     phone: phone,
     bgmiName: bgmi,
+    bgmiId: bgmiId,
     password: pass,
     points: 0,
     joinedAt: new Date().toISOString()
@@ -721,6 +731,7 @@ function renderTournaments(){
       } else if(joined) {
         h += '<span class="badge badge-approved mt-8">✅ Joined</span>';
       }
+      h += '<button class="btn btn-s btn-sm mt-8" style="float:right" onclick="viewTournamentPlayers(\''+t.id+'\')">👥</button>';
       h += '</div>';
     });
   }
@@ -1013,7 +1024,10 @@ function renderAdminTournaments(){
       h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
       h += '<div class="row"><span class="label">🏆 ₹'+t.prize+'</span><span>🎯 '+t.type+'</span></div>';
       h += '<div class="row"><span class="label">👥 Teams: '+teamCount+'/'+t.maxTeams+'</span><span>🗺️ '+t.map+'</span></div>';
-      h += '<button class="btn btn-r btn-full mt-8" onclick="deleteTournament(\''+t.id+'\')">🗑️ DELETE TOURNAMENT - '+t.name+'</button>';
+      h += '<div class="btn-grp mt-8">';
+      h += '<button class="btn btn-p btn-sm" onclick="viewTournamentPlayers(\''+t.id+'\')">👥 Players</button>';
+      h += '<button class="btn btn-r btn-sm" onclick="deleteTournament(\''+t.id+'\')">🗑️ Delete</button>';
+      h += '</div>';
       h += '</div>';
     });
   }
@@ -1037,6 +1051,34 @@ function deleteTournament(tid){
   toast('🗑️ "'+t.name+'" deleted!');
 }
 
+// View players who joined a tournament (modal)
+function viewTournamentPlayers(tid){
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+  // Get team IDs from approved payments for this tournament
+  var joinedPayments = D.payments.filter(pm => pm.tid===tid && pm.status==='approved');
+  var teamIds = [...new Set(joinedPayments.map(pm => pm.teamId))];
+  var teams = D.teams.filter(tm => teamIds.includes(tm.id));
+
+  var el = document.getElementById('joinContent');
+  var h = '<h3>👥 Players: '+t.name+'</h3>';
+  h += '<p class="text-dim mb-8">Total Joined: '+teams.length+' / '+t.maxTeams+'</p>';
+  if(teams.length===0){
+    h += '<div class="card text-center text-dim">Koi player joined nahi hai.</div>';
+  } else {
+    teams.forEach((tm, i) => {
+      h += '<div class="card" style="padding:8px 12px">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+(i+1)+'. '+tm.name+'</span><span>🎮 '+tm.bgmiName+'</span></div>';
+      if(tm.bgmiId) h += '<div class="row"><span class="label">🔢 BGMI ID: '+tm.bgmiId+'</span></div>';
+      h += '<div class="row"><span class="label">📞 '+tm.phone+'</span><span>📧 '+tm.email+'</span></div>';
+      h += '</div>';
+    });
+  }
+  h += '<button class="btn btn-s btn-full mt-8" onclick="closeModal(\'join-tournament\')">Close</button>';
+  el.innerHTML = h;
+  openModal('join-tournament');
+}
+
 // Admin Teams
 function renderAdminTeams(){
   var h = '';
@@ -1048,7 +1090,7 @@ function renderAdminTeams(){
       h += '<div class="card" style="padding:10px">';
       h += '<div class="flex"><span style="font-weight:600;flex:1">'+t.name+'</span><span style="color:var(--acc);font-weight:700">'+ (t.points||0) +' pts</span></div>';
       h += '<div class="row"><span class="label">📧 '+t.email+'</span></div>';
-      h += '<div class="row"><span class="label">📞 '+t.phone+'</span><span>🎮 '+t.bgmiName+'</span></div>';
+      h += '<div class="row"><span class="label">📞 '+t.phone+'</span><span>🎮 '+t.bgmiName+(t.bgmiId?' / ID: '+t.bgmiId:'')+'</span></div>';
       h += '<div class="row"><span class="label">Joined: '+fmtDate(t.joinedAt)+'</span><span>Events: '+joined.length+'</span></div>';
       h += '</div>';
     });

@@ -726,6 +726,22 @@ function renderTournaments(){
       h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
       h += '<div class="row"><span class="label">🏆 Prize ₹'+t.prize+'</span><span>🎯 '+t.type+' / Max: '+t.maxTeams+'</span></div>';
       h += '<div class="row"><span class="label">Map: '+t.map+'</span></div>';
+      // Show matches if player joined
+      if(joined){
+        var tourMatches = D.matches.filter(m => m.tid===t.id && !m.completed);
+        if(tourMatches.length>0){
+          h += '<div style="background:rgba(255,215,0,.05);border-radius:6px;padding:8px;margin-top:8px">';
+          h += '<div style="font-size:.85em;color:var(--acc);font-weight:600;margin-bottom:4px">🎮 Upcoming Matches:</div>';
+          tourMatches.forEach(m => {
+            h += '<div style="font-size:.8em;padding:4px 0;border-bottom:1px solid rgba(255,215,0,.1)">';
+            h += '<span style="font-weight:600">Match #'+m.num+'</span> — 📅 '+fmtDate(m.date);
+            if(m.rid) h += ' — <span style="color:var(--acc)">🔑 '+m.rid+'</span>';
+            if(m.rpw) h += ' 🔒 '+m.rpw;
+            h += '</div>';
+          });
+          h += '</div>';
+        }
+      }
       if(!joined && t.status !== 'completed'){
         h += '<button class="btn btn-p btn-sm mt-8" onclick="openJoin(\''+t.id+'\')">🎮 Join Now</button>';
       } else if(joined) {
@@ -749,12 +765,16 @@ function renderMatches(){
   } else {
     myMatches.forEach(m => {
       var t = D.tournaments.find(x => x.id===m.tid);
-      h += '<div class="card" onclick="openMatchDetails(\''+m.id+'\')" style="cursor:pointer">';
-      h += '<div class="flex"><h3>'+ (t?t.name:'Tournament') +' - Match #'+m.num+'</h3>';
-      h += m.completed ? '<span class="badge badge-completed">Done</span>' : '<span class="badge badge-ongoing">Upcoming</span>';
+      h += '<div class="card" style="border-left:3px solid '+(m.completed?'var(--text-dim)':'var(--acc)')+'">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+ (t?t.name:'Tournament') +' - Match #'+m.num+'</span>';
+      h += m.completed ? '<span class="badge badge-completed">Done</span>' : '<span class="badge badge-ongoing">Active</span>';
       h += '</div>';
       h += '<div class="row"><span class="label">📅 '+fmtDate(m.date)+'</span></div>';
-      if(m.rid) h += '<div class="row"><span class="label">🔑 Room: '+m.rid+'</span></div>';
+      if(!m.completed){
+        if(m.rid) h += '<div class="row"><span class="label" style="color:var(--acc);font-weight:700">🔑 Room ID: '+m.rid+'</span></div>';
+        if(m.rpw) h += '<div class="row"><span class="label" style="color:var(--acc);font-weight:700">🔒 Password: '+m.rpw+'</span></div>';
+        if(m.rid) h += '<button class="btn btn-b btn-sm mt-8" onclick="copyMatchInfo(\''+m.id+'\')">📋 Copy & Share</button>';
+      }
       h += '</div>';
     });
   }

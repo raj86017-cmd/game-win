@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Game Win 🏆</title>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 // EmailJS initialized after config loads (in CONFIG section)
 </script>
@@ -1013,10 +1014,17 @@ function renderPayments(){
   var h = '';
   h += '<div class="card">';
   h += '<h3>💳 UPI Payment</h3>';
+  h += '<div style="text-align:center;padding:12px 0">';
+  h += '<div id="payment-qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div>';
+  h += '</div>';
   h += '<div class="row"><span class="label">UPI ID</span><span style="color:var(--acc);font-weight:700">'+CONFIG.ADMIN_UPI_ID+'</span></div>';
   h += '<div class="row"><span class="label">Name</span><span>'+CONFIG.ADMIN_UPI_NAME+'</span></div>';
   h += '<button class="btn btn-b btn-full mt-8" onclick="copyUPI()">📋 Copy UPI ID</button>';
+  h += '<button class="btn btn-p btn-full mt-8" onclick="openUPIApp()">📱 Pay Now (UPI)</button>';
   h += '</div>';
+  
+  // Generate QR after page renders
+  setTimeout(generateUPIQR, 100);
 
   // Select tournament for payment
   var unpaidEvents = D.tournaments.filter(t => {
@@ -1063,6 +1071,31 @@ function copyUPI(){
   } else {
     toast('📋 UPI: '+CONFIG.ADMIN_UPI_ID);
   }
+}
+
+// Generate UPI QR Code
+function generateUPIQR(){
+  var el = document.getElementById('payment-qr');
+  if(!el) return;
+  el.innerHTML = '';
+  try {
+    var upiLink = 'upi://pay?pa='+CONFIG.ADMIN_UPI_ID+'&pn='+encodeURIComponent(CONFIG.ADMIN_UPI_NAME)+'&cu=INR';
+    new QRCode(el, {
+      text: upiLink,
+      width: 200,
+      height: 200,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e){ console.warn('QR error:', e); }
+}
+
+// Open UPI app
+function openUPIApp(){
+  var upiLink = 'upi://pay?pa='+CONFIG.ADMIN_UPI_ID+'&pn='+encodeURIComponent(CONFIG.ADMIN_UPI_NAME)+'&cu=INR';
+  window.location.href = upiLink;
+  setTimeout(function(){ toast('📱 Agar UPI app nahi khula to copy UPI ID karo'); }, 2000);
 }
 
 function submitPayment(){

@@ -555,6 +555,9 @@ function doLogin(){
   var pass = document.getElementById('loginPass').value.trim();
   if(!email||!pass){ showErr('loginErr','Email/Username aur password daalo!'); return; }
 
+  // Reload data from localStorage before checking — fixes "galat" bug
+  loadData();
+
   // Check admin
   if(email.toLowerCase()===D.admin.username.toLowerCase() && pass===D.admin.password){
     D.loggedIn = { role:'admin', username: D.admin.username };
@@ -570,7 +573,13 @@ function doLogin(){
     enterApp();
     return;
   }
-  showErr('loginErr','Email ya password galat hai!');
+  // Extra check: try to find by name or email only to show helpful message
+  var nameMatch = D.teams.find(t => t.email.toLowerCase()===email.toLowerCase());
+  if(nameMatch){
+    showErr('loginErr','❌ Password galat hai! "Forgot Password" ka option abhi nahi hai. Admin se contact karo.');
+    return;
+  }
+  showErr('loginErr','❌ Account exist nahi karta! Pehle Sign Up karo.\n<button class="btn btn-s btn-sm mt-8" onclick="loadData();location.reload()">🔄 Reload & Try Again</button>');
 }
 
 // ===== OTP LOGIN =====
@@ -1641,7 +1650,7 @@ document.addEventListener('keydown', function(e){
       if(document.getElementById('loginForm').classList.contains('active')){
         if(a.id==='loginEmail'||a.id==='loginPass') doLogin();
       } else {
-        if(a.id==='signupName'||a.id==='signupEmail'||a.id==='signupPhone'||a.id==='signupBgmi'||a.id==='signupPass') doSignup();
+        if(a.id==='signupName'||a.id==='signupEmail'||a.id==='signupPhone'||a.id==='signupBgmi'||a.id==='signupBgmiId'||a.id==='signupPass') doSignup();
       }
     }
   }
@@ -1652,7 +1661,15 @@ document.addEventListener('keydown', function(e){
 // ============================================================
 loadData();
 
-// If already logged in, enter app
+// If already logged in, verify team still exists before auto-login
+if(D.loggedIn && D.loggedIn.role==='team'){
+  var teamStillExists = D.teams.find(t => t.id===D.loggedIn.id);
+  if(!teamStillExists){
+    // Session but no team data — force re-login
+    D.loggedIn = null;
+    saveSession();
+  }
+}
 if(D.loggedIn){
   enterApp();
 }

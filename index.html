@@ -730,7 +730,6 @@ function sendOTP(){
 
   // Generate 6-digit OTP
   _otpCode = String(Math.floor(100000 + Math.random()*900000));
-  console.log('OTP:', _otpCode); // for debugging
 
   // Check if admin
   var isAdmin = val.toLowerCase()===D.admin.username.toLowerCase();
@@ -743,27 +742,53 @@ function sendOTP(){
 
   _otpTargetId = isAdmin ? 'admin' : team.id;
 
+  var sentTo = [];
+  var recipientEmail = isAdmin ? (D.admin.email||val) : (team?team.email:val);
+  var recipientPhone = team ? team.phone : '';
+
   // Try EmailJS
-  var emailSent = false;
-  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && emailjs){
-    var recipient = val;
-    if(team && team.email) recipient = team.email;
+  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && typeof emailjs !== 'undefined'){
     emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_OTP_TEMPLATE, {
-      to_email: recipient,
+      to_email: recipientEmail,
       otp: _otpCode,
       name: team ? team.name : 'Admin'
     }).then(function(){
-      emailSent = true;
-      showOTPVerify('✅ OTP sent to your email!');
+      sentTo.push('email');
     }).catch(function(err){
-      console.error('EmailJS error:', err);
-      showOTPVerify('📱 OTP: '+_otpCode+' (EmailJS setup nahi hai)');
+      console.error('EmailJS err:', err);
     });
-  } else {
-    showOTPVerify('📱 OTP: '+_otpCode+' (Setup EmailJS for auto-send)');
   }
 
-  // Start resend timer
+  // Auto-open SMS intent for phone number
+  if(recipientPhone && recipientPhone.length>=10){
+    var smsBody = encodeURIComponent('Your GameWin OTP: '+_otpCode);
+    setTimeout(function(){
+      window.open('sms:'+recipientPhone+'?body='+smsBody, '_blank');
+    }, 300);
+    sentTo.push('sms');
+  } else {
+    // Try parsing the input as phone number
+    var cleaned = val.replace(/[^0-9]/g,'');
+    if(cleaned.length>=10){
+      var smsBody = encodeURIComponent('Your GameWin OTP: '+_otpCode);
+      setTimeout(function(){
+        window.open('sms:'+cleaned+'?body='+smsBody, '_blank');
+      }, 300);
+      sentTo.push('sms');
+    }
+  }
+
+  var msg = '📨 OTP bhej diya!';
+  if(sentTo.length===0){
+    msg += '<br><span style="color:var(--red)">⚠️ EmailJS setup nahi hai. <b>EmailJS CONFIG me keys daalo</b></span>';
+    msg += '<br><button class="btn btn-b btn-sm mt-8" onclick="navigator.clipboard.writeText(\''+_otpCode+'\');toast(\'✅ OTP copied\')">📋 Copy OTP Manually</button>';
+  } else {
+    if(sentTo.includes('email')) msg += ' 📧 Email pe bheja!';
+    if(sentTo.includes('sms')) msg += ' 📱 SMS pe bheja!';
+    if(sentTo.includes('sms')) msg += '<br><button class="btn btn-b btn-sm mt-8" onclick="window.open(\'https://wa.me/91'+recipientPhone.replace(/^0+/,'')+'?text=Your+GameWin+OTP:+'+_otpCode+'\',\'_blank\')">📱 WhatsApp pe bhejo</button>';
+  }
+
+  showOTPVerify(msg);
   startOTPTimer();
 }
 
@@ -966,16 +991,25 @@ function startSignupOTP(){
       otp: _signupOTP,
       name: name
     }).then(function(){
-      sentTo.push('📧 '+email);
+      sentTo.push('email');
       showSignupOTPStep(sentTo);
     }).catch(function(){
-      sentTo.push('📧 EmailJS error — showing on screen');
+      // Email failed, try SMS below
       showSignupOTPStep(sentTo);
     });
-  } else {
-    // No EmailJS — show OTP on screen & try SMS intent
-    showSignupOTPStep(sentTo);
   }
+
+  // Auto-open SMS with OTP
+  if(phone && phone.length>=10){
+    var smsBody = encodeURIComponent('Your GameWin OTP: '+_signupOTP);
+    setTimeout(function(){
+      window.open('sms:'+phone+'?body='+smsBody, '_blank');
+    }, 300);
+    if(!sentTo.includes('sms')) sentTo.push('sms');
+  }
+
+  // Show the OTP step (message only, NO OTP code visible)
+  showSignupOTPStep(sentTo);
 }
 
 function showSignupOTPStep(sentTo){
@@ -983,19 +1017,17 @@ function showSignupOTPStep(sentTo){
   document.getElementById('signupStep2').style.display = '';
 
   var statusEl = document.getElementById('signupOtpStatus');
-  var msg = '';
-
-  if(sentTo.length>0 && sentTo[0].includes('@')){
-    msg = '✅ OTP bhej diya: '+sentTo[0];
-  } else {
-    // Show OTP on screen so user can use it
-    msg = '⚠️ EmailJS setup nahi hai. Is code ka istemal karo: <b style="font-size:1.3em;color:var(--acc);letter-spacing:3px">'+_signupOTP+'</b>';
+  var msg = '📨 OTP bhej diya!';
+  if(sentTo.includes('email')) msg += ' 📧 Email pe bheja!';
+  if(sentTo.includes('sms')) msg += ' 📱 SMS pe bheja!';
+  if(!sentTo.includes('email') && !sentTo.includes('sms')){
+    msg += '<br><span style="color:var(--red)">⚠️ Email ya SMS send nahi hua. Manual copy karo:</span>';
+    msg += '<br><button class="btn btn-b btn-sm mt-8" onclick="navigator.clipboard.writeText(\''+_signupOTP+'\');toast(\'✅ OTP copied\')">📋 Copy OTP</button>';
   }
-
-  // Also try phone SMS intent
+  // Add WhatsApp as backup
   if(_signupData.phone && _signupData.phone.length>=10){
-    var smsBody = encodeURIComponent('Your GameWin OTP: '+_signupOTP);
-    msg += '<br><button class="btn btn-b btn-sm mt-8" onclick="window.open(\'sms:'+_signupData.phone+'?body='+smsBody+'\',\'_blank\')">📲 Send OTP via SMS to '+_signupData.phone+'</button>';
+    var waLink = 'https://wa.me/91'+_signupData.phone.replace(/^0+/,'')+'?text=Your+GameWin+OTP:+'+_signupOTP;
+    msg += '<br><button class="btn btn-g btn-sm mt-8" onclick="window.open(\''+waLink+'\',\'_blank\')">📱 WhatsApp pe bhejo</button>';
   }
 
   statusEl.innerHTML = msg;
@@ -1194,6 +1226,21 @@ function renderHome(){
       h += '<div class="flex"><h3>'+t.name+'</h3> <span class="badge badge-'+t.status+'">'+t.status+'</span></div>';
       h += '<div class="row"><span class="label">📅 '+fmtDate(t.date)+'</span><span>💰 ₹'+t.fee+'</span></div>';
       h += '<div class="row"><span class="label">🏆 Prize ₹'+t.prize+'</span><span>🎯 '+t.type+'</span></div>';
+      // Show upcoming matches info
+      var tourMatches = D.matches.filter(m => m.tid===t.id && !m.completed);
+      if(tourMatches.length>0){
+        h += '<div style="background:rgba(255,215,0,.05);border-radius:6px;padding:6px 8px;margin-top:6px">';
+        h += '<div style="font-size:.8em;color:var(--acc);font-weight:600">🎮 '+tourMatches.length+' Match(es) available</div>';
+        tourMatches.forEach(m => {
+          h += '<div style="font-size:.75em;padding:2px 0">';
+          h += 'Match #'+m.num+' — 📅 '+fmtDate(m.date);
+          if(joined && m.rid) h += ' — <span style="color:var(--acc);font-weight:700">🔑 '+m.rid+'</span>';
+          if(joined && m.rpw) h += ' <span style="color:var(--green);font-weight:700">🔒 '+m.rpw+'</span>';
+          if(!joined) h += ' <span class="text-dim">🔒 (Join to see room)</span>';
+          h += '</div>';
+        });
+        h += '</div>';
+      }
       if(!joined && t.status !== 'completed'){
         h += '<button class="btn btn-p btn-sm mt-8" onclick="openJoin(\''+t.id+'\')">🎮 Join</button>';
       } else if(joined) {
@@ -2221,8 +2268,9 @@ function createMatch(){
   if(!tid){ toast('❌ Tournament select karo!'); return; }
   if(!rid){ toast('❌ Room ID daalo!'); return; }
 
+  var mid = uid();
   D.matches.push({
-    id: uid(),
+    id: mid,
     tid: tid,
     num: num,
     rid: rid,
@@ -2236,6 +2284,27 @@ function createMatch(){
   document.getElementById('cm-rpw').value='';
   document.getElementById('cm-num').value='1';
   toast('✅ Match created!');
+
+  // Show share-options for this match
+  var t = D.tournaments.find(x => x.id===tid);
+  var shareText = encodeURIComponent(t.name+' Match #'+num+'\n🔑 Room: '+rid+'\n🔒 Pass: '+(rpw||'N/A')+'\n📅 '+date);
+  var syncHash = encodeURIComponent(JSON.stringify({id:mid, tid:tid, num:num, rid:rid, rpw:rpw||'', date:date, completed:false}));
+  var syncUrl = window.location.href.split('#')[0]+'#sync='+syncHash;
+
+  setTimeout(function(){
+    var h = '<div style="position:fixed;bottom:20px;right:20px;background:rgba(20,20,30,.95);border:1px solid var(--acc);border-radius:12px;padding:12px;z-index:999;max-width:300px;box-shadow:0 0 20px rgba(255,215,0,.2)">';
+    h += '<div style="font-weight:600;color:var(--acc);margin-bottom:6px">📢 Share Match Info</div>';
+    h += '<div style="font-size:.8em;margin-bottom:8px">🔑 '+rid+' | 🔒 '+(rpw||'N/A')+'</div>';
+    h += '<button class="btn btn-b btn-sm" style="width:100%;margin-bottom:4px" onclick="navigator.clipboard.writeText(window.location.href.split(\\'#\\')[0]+\\'#sync=\\'+\\''+syncHash+'\\');toast(\\'✅ Link copied! Telegram pe share karo\\')">🔗 Copy Share Link</button>';
+    h += '<button class="btn btn-g btn-sm" style="width:100%;margin-bottom:4px" onclick="window.open(\\'https://t.me/share/url?url=\\'+encodeURIComponent(window.location.href.split(\\'#\\')[0]+\\'#sync=\\'+\\''+syncHash+'\\')+\\'&text=\\'+\\''+shareText+'\\',\\'_blank\\')">📢 Share on Telegram</button>';
+    h += '<button class="btn btn-p btn-sm" style="width:100%" onclick="navigator.clipboard.writeText(decodeURIComponent(\\''+shareText+'\\'));toast(\\'✅ Info copied!\\')">📋 Copy Room Info</button>';
+    h += '<button class="btn btn-s btn-sm mt-4" style="width:100%" onclick="this.parentElement.remove()">✕ Close</button>';
+    h += '</div>';
+    var div = document.createElement('div');
+    div.innerHTML = h;
+    document.body.appendChild(div);
+  }, 500);
+
   renderPage(currentPage);
 }
 
@@ -2259,6 +2328,30 @@ document.addEventListener('keydown', function(e){
 // INIT
 // ============================================================
 loadData();
+
+// ===== URL HASH SYNC — match data share karo via link =====
+try{
+  if(window.location.hash && window.location.hash.startsWith('#sync=')){
+    var raw = decodeURIComponent(window.location.hash.replace('#sync=',''));
+    var matchData = JSON.parse(raw);
+    // Add match if not duplicate
+    var exists = D.matches.find(m => m.id===matchData.id);
+    if(!exists && matchData.rid){
+      D.matches.push(matchData);
+      saveData();
+      // Clear hash after sync
+      window.location.hash = '';
+      // Show confirmation toast after page loads
+      setTimeout(function(){
+        toast('✅ Match synced! 🔑 '+matchData.rid+' | 🔒 '+(matchData.rpw||'N/A'));
+      }, 1000);
+    } else if(exists){
+      window.location.hash = '';
+    } else {
+      window.location.hash = '';
+    }
+  }
+}catch(e){ /* ignore hash errors */ }
 
 // If already logged in, verify team still exists before auto-login
 if(D.loggedIn && D.loggedIn.role==='team'){

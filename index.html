@@ -88,6 +88,7 @@ a{color:var(--acc);text-decoration:none;}
 .btn-s{background:var(--card2);color:var(--text);border:1px solid var(--brd);}
 .btn-w{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;}
 .btn-b{background:linear-gradient(135deg,#2979ff,#0d47a1);color:#fff;}
+.btn-r{background:linear-gradient(135deg,#ff1744,#d50000);color:#fff;}
 .btn-sm{padding:8px 14px;font-size:.85em;}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 .btn-grp{display:flex;gap:10px;flex-wrap:wrap;}
@@ -228,30 +229,45 @@ a{color:var(--acc);text-decoration:none;}
     <div class="auth-form" id="signupForm">
       <h2>📝 Sign Up</h2>
       <div class="auth-err" id="signupErr"></div>
-      <div class="fg"><label>Player Name</label>
-        <input type="text" id="signupName" placeholder="Tera naam">
-      </div>
-      <div class="fg"><label>Email</label>
-        <input type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email">
-      </div>
-      <div class="fg"><label>Phone Number</label>
-        <input type="tel" id="signupPhone" placeholder="Enter phone number">
-      </div>
-      <div class="fg"><label>BGMI Name</label>
-        <input type="text" id="signupBgmi" placeholder="In-game name">
-      </div>
-      <div class="fg"><label>BGMI ID</label>
-        <input type="text" id="signupBgmiId" placeholder="Your BGMI player ID (optional)">
-      </div>
-      <div class="fg"><label>Password</label>
-        <div class="pass-wrap">
-          <input type="password" id="signupPass" placeholder="Password (min 6 chars)" autocomplete="new-password">
-          <button type="button" id="signupEye" class="eye-btn">👁️</button>
+      <!-- Signup Step 1: Form -->
+      <div id="signupStep1">
+        <div class="fg"><label>Player Name</label>
+          <input type="text" id="signupName" placeholder="Tera naam">
+        </div>
+        <div class="fg"><label>Email</label>
+          <input type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="fg"><label>Phone Number</label>
+          <input type="tel" id="signupPhone" placeholder="Enter phone number">
+        </div>
+        <div class="fg"><label>BGMI Name</label>
+          <input type="text" id="signupBgmi" placeholder="In-game name">
+        </div>
+        <div class="fg"><label>BGMI ID</label>
+          <input type="text" id="signupBgmiId" placeholder="Your BGMI player ID (optional)">
+        </div>
+        <div class="fg"><label>Password</label>
+          <div class="pass-wrap">
+            <input type="password" id="signupPass" placeholder="Password (min 6 chars)" autocomplete="new-password">
+            <button type="button" id="signupEye" class="eye-btn">👁️</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-p btn-full" onclick="startSignupOTP()">📝 Send OTP & Sign Up</button>
+        <div class="auth-link text-center mt-12 text-dim">
+          Already have account? <a href="javascript:void(0)" onclick="showLogin()">Login</a>
         </div>
       </div>
-      <button type="button" class="btn btn-p btn-full" onclick="doSignup()">📝 Sign Up</button>
-      <div class="auth-link text-center mt-12 text-dim">
-        Already have account? <a href="javascript:void(0)" onclick="showLogin()">Login</a>
+      <!-- Signup Step 2: OTP Verify -->
+      <div id="signupStep2" style="display:none">
+        <p class="text-dim text-center mb-8" style="font-size:.85em">OTP bhej diya gaya hai. Neeche daal kar verify karo.</p>
+        <div class="fg"><label>Enter OTP</label>
+          <input type="text" id="signupOtpCode" placeholder="6-digit OTP" maxlength="6" inputmode="numeric" pattern="[0-9]*" onkeydown="if(event.key==='Enter')verifySignupOTP()">
+        </div>
+        <button type="button" class="btn btn-g btn-full" onclick="verifySignupOTP()">✅ Verify & Create Account</button>
+        <div id="signupOtpStatus" class="mt-8 text-center" style="font-size:.85em;color:var(--dim)"></div>
+        <div class="btn-grp mt-8">
+          <button type="button" class="btn btn-s btn-sm btn-full" onclick="cancelSignupOTP()">← Back</button>
+        </div>
       </div>
     </div>
   </div>
@@ -470,6 +486,7 @@ let D = {
   matches: [],
   payments: [],
   walletRequests: [],
+  withdrawRequests: [],
   loggedIn: null
 };
 
@@ -590,28 +607,31 @@ function togglePassSignup(){
 document.getElementById('loginEye')?.addEventListener('click', togglePass);
 document.getElementById('signupEye')?.addEventListener('click', togglePassSignup);
 
-// ===== PARTICLE BACKGROUND =====
+// Particle background (lightweight) — keeps visual without blocking touch
 (function(){
   var c = document.createElement('canvas');
   c.id = 'particles-canvas';
+  c.setAttribute('aria-hidden','true');
   document.body.prepend(c);
   var ctx = c.getContext('2d');
-  var w, h, particles = [];
+  var w, h, particles = [], active = true;
   function resize(){ w=c.width=window.innerWidth; h=c.height=window.innerHeight; }
   window.addEventListener('resize', resize);
   resize();
   var colors = ['255,215,0','0,212,255','255,0,255','255,107,53','0,255,136'];
-  for(var i=0;i<50;i++){
+  for(var i=0;i<35;i++){
     particles.push({
       x: Math.random()*w, y: Math.random()*h,
-      vx: (Math.random()-0.5)*0.6, vy: (Math.random()-0.5)*0.6,
-      r: Math.random()*2.5+1, o: Math.random()*0.5+0.15,
+      vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3,
+      r: Math.random()*2+1, o: Math.random()*0.4+0.1,
       c: colors[Math.floor(Math.random()*colors.length)]
     });
   }
   function draw(){
+    if(!active) return;
     ctx.clearRect(0,0,w,h);
-    particles.forEach(function(p){
+    for(var pi=0;pi<particles.length;pi++){
+      var p = particles[pi];
       p.x += p.vx; p.y += p.vy;
       if(p.x<0||p.x>w) p.vx*=-1;
       if(p.y<0||p.y>h) p.vy*=-1;
@@ -619,23 +639,13 @@ document.getElementById('signupEye')?.addEventListener('click', togglePassSignup
       ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
       ctx.fillStyle='rgba('+p.c+','+p.o+')';
       ctx.fill();
-      // Connect close particles with lines
-      particles.forEach(function(p2){
-        var dx = p.x-p2.x, dy = p.y-p2.y, d = Math.sqrt(dx*dx+dy*dy);
-        if(d<80){
-          ctx.beginPath();
-          ctx.moveTo(p.x,p.y);
-          ctx.lineTo(p2.x,p2.y);
-          ctx.strokeStyle='rgba('+p.c+',0.04)';
-          ctx.lineWidth=0.5;
-          ctx.stroke();
-        }
-      });
-    });
+    }
     requestAnimationFrame(draw);
   }
   draw();
-  if(w<500) particles.length=25;
+  // Pause canvas when not visible (saves battery & avoids touch conflicts)
+  document.addEventListener('visibilitychange', function(){ active = !document.hidden; });
+  if(w<500) particles.length=20;
 })();
 
 // ===== AUTH =====
@@ -814,64 +824,215 @@ function notifyPlayers(tid, mid){
     return;
   }
 
-  var msg = encodeURIComponent('🎮 '+t.name+' Match #'+m.num+'\n🔑 Room: '+m.rid+'\n🔒 Pass: '+m.rpw+'\n📅 '+fmtDate(m.date));
+  var roomText = t.name+' Match #'+m.num+'\n🔑 Room: '+m.rid+'\n🔒 Pass: '+(m.rpw||'N/A')+'\n📅 '+fmtDate(m.date);
+  var plainRoomText = t.name+' Match #'+m.num+' - Room: '+m.rid+' Pass: '+(m.rpw||'N/A');
+  var smsBody = encodeURIComponent(roomText);
 
-  // Send email via EmailJS (if configured)
-  var emailSent = 0;
-  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && emailjs){
-    teams.forEach(function(tm){
-      if(tm.email){
-        emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_ROOM_TEMPLATE, {
-          to_email: tm.email,
-          to_name: tm.name,
-          tournament: t.name,
-          match_num: m.num,
-          room_id: m.rid,
-          room_pass: m.rpw || 'N/A',
-          match_date: fmtDate(m.date)
-        }).then(function(){ emailSent++; }).catch(function(){});
-      }
-    });
-    toast('📨 Email sent to '+teams.length+' players!');
-  } else {
-    toast('📱 Setup EmailJS for auto email. Tap SMS to send!');
-  }
-
-  // SMS via phone intent (Android)
+  // Build player list HTML
+  var playerList = '';
+  var emailCount = 0, smsCount = 0;
   teams.forEach(function(tm){
-    if(tm.phone && tm.phone.length>=10){
-      var btn = document.createElement('div');
-      btn.style.cssText = 'position:fixed;bottom:80px;left:10px;right:10px;z-index:999;background:var(--card);border:1px solid var(--acc);border-radius:12px;padding:15px;box-shadow:0 4px 20px rgba(0,0,0,.5)';
-      btn.innerHTML = '<div style="text-align:center;margin-bottom:10px;font-weight:600">📲 Send to '+tm.name+'?</div>'+
-        '<div class="flex gap-4">'+
-        '<button class="btn btn-p btn-sm f1" onclick="window.open(\'sms:'+tm.phone+'?body='+msg+'\',\'_blank\')">💬 SMS: '+tm.phone+'</button>'+
-        '<button class="btn btn-s btn-sm" onclick="this.parentElement.parentElement.remove()">✕</button>'+
-        '</div>';
-      document.body.appendChild(btn);
+    var hasEmail = tm.email && tm.email.includes('@');
+    var hasPhone = tm.phone && tm.phone.length>=10;
+    if(hasEmail) emailCount++;
+    if(hasPhone) smsCount++;
+
+    var emailOk = hasEmail ? '✅' : '❌';
+    var phoneOk = hasPhone ? '✅' : '❌';
+
+    playerList += '<div style="background:var(--card2);border-radius:6px;padding:8px;margin:6px 0;font-size:.8em">';
+    playerList += '<div style="font-weight:600;color:var(--acc)">🎮 '+tm.name+'</div>';
+    playerList += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
+    playerList += '<span style="font-size:.75em;color:var(--dim)">📧 '+emailOk+' '+(tm.email||'N/A')+'</span>';
+    playerList += '<span style="font-size:.75em;color:var(--dim)">📱 '+phoneOk+' '+(tm.phone||'N/A')+'</span>';
+    playerList += '</div>';
+    // Action buttons for this player
+    playerList += '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">';
+    if(hasEmail){
+      playerList += '<button class="btn btn-b btn-sm" style="font-size:.7em;padding:3px 8px" onclick="emailPlayer(\''+tm.id+'\',\''+tid+'\',\''+mid+'\')">📧 Email</button>';
     }
+    if(hasPhone){
+      playerList += '<button class="btn btn-p btn-sm" style="font-size:.7em;padding:3px 8px" onclick="window.open(\'sms:'+tm.phone+'?body='+smsBody+'\',\'_blank\')">💬 SMS</button>';
+      playerList += '<button class="btn btn-g btn-sm" style="font-size:.7em;padding:3px 8px" onclick="window.open(\'https://wa.me/91'+tm.phone.replace(/^0+/,'')+'?text='+smsBody+'\',\'_blank\')">📱 WhatsApp</button>';
+    }
+    playerList += '</div></div>';
   });
+
+  // Build the modal
+  var modal = '<div class="modal-backdrop" onclick="closeNotifyModal()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:15px">';
+  modal += '<div onclick="event.stopPropagation()" style="background:var(--card);border:1px solid var(--acc);border-radius:12px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:0;box-shadow:0 8px 40px rgba(255,215,0,.15)">';
+  
+  // Header
+  modal += '<div style="background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,107,53,.05));padding:15px;border-radius:12px 12px 0 0;border-bottom:1px solid var(--brd)">';
+  modal += '<div class="flex" style="align-items:center"><span style="font-size:1.2em;font-weight:700;flex:1">📢 Broadcast Room</span><button class="btn btn-s btn-sm" onclick="closeNotifyModal()">✕</button></div>';
+  modal += '<div style="font-size:.85em;margin-top:6px;color:var(--acc);font-weight:600">'+t.name+' — Match #'+m.num+'</div>';
+  modal += '<div style="font-size:.8em;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap"><span>🔑 <b>'+m.rid+'</b></span><span>🔒 <b>'+(m.rpw||'N/A')+'</b></span><span>📅 '+fmtDate(m.date)+'</span></div>';
+  modal += '</div>';
+
+  // Quick actions
+  modal += '<div style="padding:10px 15px;background:rgba(0,212,255,.03);border-bottom:1px solid var(--brd)">';
+  modal += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  modal += '<button class="btn btn-p btn-sm" style="flex:1" onclick="navigator.clipboard.writeText(\''+plainRoomText.replace(/'/g,"\\'")+'\');toast(\'✅ Room info copied!\')">📋 Copy Room Info</button>';
+  modal += '<button class="btn btn-b btn-sm" style="flex:1" onclick="openAllSMS(\''+smsBody+'\',\''+teams.map(tm=>tm.phone).filter(p=>p&&p.length>=10).join(',')+'\')">📲 SMS All</button>';
+  modal += '</div>';
+  modal += '<div style="font-size:.75em;color:var(--dim);margin-top:6px;text-align:center">Players: <b style="color:var(--acc)">'+teams.length+'</b>';
+  modal += ' | 📧 Email: <b style="color:var(--blue)">'+emailCount+'</b> | 📱 Phone: <b style="color:var(--green)">'+smsCount+'</b></div>';
+  modal += '</div>';
+
+  // Player list
+  modal += '<div style="padding:10px 15px">';
+  modal += playerList;
+  modal += '</div>';
+
+  modal += '</div></div>';
+
+  // Create modal element
+  var el = document.createElement('div');
+  el.id = 'notifyModal';
+  el.innerHTML = modal;
+  document.body.appendChild(el);
 }
 
-function doSignup(){
+function closeNotifyModal(){
+  var el = document.getElementById('notifyModal');
+  if(el){ el.remove(); }
+}
+
+function openAllSMS(body, phonesStr){
+  var phones = phonesStr.split(',').filter(Boolean);
+  if(phones.length===0){ toast('❌ Koi phone number nahi hai!'); return; }
+  // Open SMS for first phone (most Android phones open 1 SMS at a time)
+  window.open('sms:'+phones[0]+'?body='+body, '_blank');
+  toast('📲 '+phones.length+' players ke liye SMS intent open hua!');
+}
+
+function emailPlayer(teamId, tid, mid){
+  var tm = D.teams.find(x => x.id===teamId);
+  var t = D.tournaments.find(x => x.id===tid);
+  var m = D.matches.find(x => x.id===mid);
+  if(!tm||!t||!m) return;
+
+  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && emailjs){
+    emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_ROOM_TEMPLATE, {
+      to_email: tm.email,
+      to_name: tm.name,
+      tournament: t.name,
+      match_num: m.num,
+      room_id: m.rid,
+      room_pass: m.rpw || 'N/A',
+      match_date: fmtDate(m.date)
+    }).then(function(){
+      toast('✅ Email sent to '+tm.name);
+    }).catch(function(){
+      toast('❌ Email failed. Check EmailJS setup.');
+    });
+  } else {
+    toast('📧 EmailJS setup karo pehle! CONFIG me keys daalo.');
+  }
+}
+
+// ===== SIGNUP OTP FLOW =====
+var _signupOTP = '';
+var _signupData = null;
+
+function startSignupOTP(){
   var name = document.getElementById('signupName').value.trim();
   var email = document.getElementById('signupEmail').value.trim();
   var phone = document.getElementById('signupPhone').value.trim();
   var bgmi = document.getElementById('signupBgmi').value.trim();
   var bgmiId = document.getElementById('signupBgmiId').value.trim();
   var pass = document.getElementById('signupPass').value.trim();
+
   if(!name||!email||!phone||!bgmi||!pass){ showErr('signupErr','Sab fields bharein!'); return; }
   if(pass.length<6){ showErr('signupErr','Password minimum 6 characters!'); return; }
   if(D.teams.find(t=>t.email.toLowerCase()===email.toLowerCase())){ showErr('signupErr','Ye email already registered hai!'); return; }
   if(D.teams.find(t=>t.phone===phone)){ showErr('signupErr','Ye phone already registered hai!'); return; }
 
+  // Store data for later
+  _signupData = {
+    name: name, email: email, phone: phone,
+    bgmiName: bgmi, bgmiId: bgmiId, password: pass
+  };
+
+  // Generate 6-digit OTP
+  _signupOTP = String(Math.floor(100000 + Math.random()*900000));
+
+  var sentTo = [];
+
+  // Try sending via EmailJS if configured
+  if(CONFIG.EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY' && typeof emailjs !== 'undefined'){
+    emailjs.send(CONFIG.EMAILJS_SERVICE_ID, CONFIG.EMAILJS_OTP_TEMPLATE, {
+      to_email: email,
+      otp: _signupOTP,
+      name: name
+    }).then(function(){
+      sentTo.push('📧 '+email);
+      showSignupOTPStep(sentTo);
+    }).catch(function(){
+      sentTo.push('📧 EmailJS error — showing on screen');
+      showSignupOTPStep(sentTo);
+    });
+  } else {
+    // No EmailJS — show OTP on screen & try SMS intent
+    showSignupOTPStep(sentTo);
+  }
+}
+
+function showSignupOTPStep(sentTo){
+  document.getElementById('signupStep1').style.display = 'none';
+  document.getElementById('signupStep2').style.display = '';
+
+  var statusEl = document.getElementById('signupOtpStatus');
+  var msg = '';
+
+  if(sentTo.length>0 && sentTo[0].includes('@')){
+    msg = '✅ OTP bhej diya: '+sentTo[0];
+  } else {
+    // Show OTP on screen so user can use it
+    msg = '⚠️ EmailJS setup nahi hai. Is code ka istemal karo: <b style="font-size:1.3em;color:var(--acc);letter-spacing:3px">'+_signupOTP+'</b>';
+  }
+
+  // Also try phone SMS intent
+  if(_signupData.phone && _signupData.phone.length>=10){
+    var smsBody = encodeURIComponent('Your GameWin OTP: '+_signupOTP);
+    msg += '<br><button class="btn btn-b btn-sm mt-8" onclick="window.open(\'sms:'+_signupData.phone+'?body='+smsBody+'\',\'_blank\')">📲 Send OTP via SMS to '+_signupData.phone+'</button>';
+  }
+
+  statusEl.innerHTML = msg;
+  document.getElementById('signupOtpCode').value = '';
+  document.getElementById('signupOtpCode').focus();
+}
+
+function cancelSignupOTP(){
+  _signupOTP = '';
+  _signupData = null;
+  document.getElementById('signupStep1').style.display = '';
+  document.getElementById('signupStep2').style.display = 'none';
+  document.getElementById('signupOtpStatus').innerHTML = '';
+}
+
+function verifySignupOTP(){
+  var otp = document.getElementById('signupOtpCode').value.trim();
+  if(!otp){ showErr('signupErr','❌ OTP daalo!'); return; }
+  if(otp !== _signupOTP){
+    showErr('signupErr','❌ Galat OTP! Dobara try karo.');
+    return;
+  }
+  if(!_signupData){
+    showErr('signupErr','❌ Error: signup data lost. Dobara form bharein.');
+    return;
+  }
+
+  // OTP verified! Create account
+  var d = _signupData;
   var team = {
     id: uid(),
-    name: name,
-    email: email,
-    phone: phone,
-    bgmiName: bgmi,
-    bgmiId: bgmiId,
-    password: pass,
+    name: d.name,
+    email: d.email,
+    phone: d.phone,
+    bgmiName: d.bgmiName,
+    bgmiId: d.bgmiId || '',
+    password: d.password,
     points: 0,
     balance: 0,
     joinedAt: new Date().toISOString()
@@ -882,7 +1043,12 @@ function doSignup(){
   // Auto login
   D.loggedIn = { role:'team', id:team.id, name:team.name, email:team.email };
   saveSession();
-  toast('✅ Account ban gaya! Welcome '+name);
+
+  // Cleanup OTP state
+  _signupOTP = '';
+  _signupData = null;
+
+  toast('✅ Account ban gaya! Welcome '+d.name);
   enterApp();
 }
 
@@ -950,19 +1116,20 @@ function enterApp(){
   document.getElementById('adminNav').style.display = isAdmin ? '' : 'none';
   document.getElementById('userInfo').textContent = isAdmin ? '👑 Admin' : '🎮 '+D.loggedIn.name;
 
-  // Setup bottom nav
-  var navs = document.querySelectorAll(isAdmin ? '#adminNav .btm-nav, .btm-nav#adminNav .btm-nav' : '#playerNav .btm-nav, .btm-nav#playerNav');
-  document.querySelectorAll(isAdmin ? '#adminNav button' : '#playerNav button').forEach(b=>{
-    b.addEventListener('click', function(){
-      go(this.dataset.page);
-    });
-  });
+  // Setup bottom nav — use event delegation for reliability
+  document.removeEventListener('click', navDelegate);
+  navDelegate = function(e){
+    var btn = e.target.closest('.btm-nav button[data-page]');
+    if(btn) go(btn.dataset.page);
+  };
+  document.addEventListener('click', navDelegate);
 
   go(isAdmin ? 'admin-dash' : 'home');
 }
 
 // ===== PAGE NAV =====
 var currentPage = '';
+var navDelegate = null;
 function go(page){
   currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1036,13 +1203,30 @@ function renderHome(){
     });
   }
 
-  // My joined tournaments
+  // My joined tournaments with Room ID / Password
   var myTids = D.payments.filter(pm => pm.teamId===D.loggedIn.id && pm.status==='approved').map(pm => pm.tid);
   var myTournaments = D.tournaments.filter(t => myTids.includes(t.id));
   if(myTournaments.length>0){
     h += '<h3 style="font-size:.9em;color:var(--acc);margin:10px 0 6px">🎯 My Tournaments</h3>';
     myTournaments.forEach(t => {
-      h += '<div class="card"><div class="flex"><span>'+t.name+'</span><span class="badge badge-'+t.status+'">'+t.status+'</span></div></div>';
+      h += '<div class="card"><div class="flex"><span style="font-weight:600">'+t.name+'</span><span class="badge badge-'+t.status+'">'+t.status+'</span></div>';
+      // Show match room id & password for this tournament
+      var tourMatches = D.matches.filter(m => m.tid===t.id && !m.completed);
+      if(tourMatches.length>0){
+        h += '<div style="background:rgba(255,215,0,.05);border-radius:6px;padding:8px;margin-top:6px">';
+        h += '<div style="font-size:.85em;color:var(--acc);font-weight:600;margin-bottom:4px">🎮 Available Matches:</div>';
+        tourMatches.forEach(m => {
+          h += '<div style="font-size:.8em;padding:4px 0;border-bottom:1px solid rgba(255,215,0,.1)">';
+          h += '<span style="font-weight:600">Match #'+m.num+'</span>';
+          if(m.rid) h += ' — <span style="color:var(--acc);font-weight:700">🔑 '+m.rid+'</span>';
+          if(m.rpw) h += ' <span style="color:var(--green);font-weight:700">🔒 '+m.rpw+'</span>';
+          h += '</div>';
+        });
+        h += '</div>';
+      } else if(t.status==='upcoming' || t.status==='ongoing'){
+        h += '<div class="text-dim mt-4" style="font-size:.8em">⏳ Room ID & Password jald aayega...</div>';
+      }
+      h += '</div>';
     });
   }
 
@@ -1207,6 +1391,7 @@ function renderPayments(){
   h += '<div class="text-dim" style="font-size:.85em">Available Balance</div>';
   h += '</div>';
   h += '<button class="btn btn-g btn-full" onclick="showAddMoney()">➕ Add Money</button>';
+  h += '<button class="btn btn-r btn-full mt-8" onclick="showWithdraw()">💰 Withdraw</button>';
   h += '</div>';
   
   // --- Add Money Modal (hidden inline) ---
@@ -1224,6 +1409,23 @@ function renderPayments(){
   h += '<button class="btn btn-g btn-full" onclick="submitWalletTopUp()">✅ Submit & Request Approval</button>';
   h += '<button class="btn btn-s btn-sm btn-full mt-8" onclick="hideAddMoney()">Cancel</button>';
   h += '</div>';
+  h += '</div></div>';
+
+  // --- Withdraw Section ---
+  h += '<div id="withdrawSection" style="display:none">';
+  h += '<div class="card" style="border-color:#ff1744">';
+  h += '<h3>💰 Withdraw Money</h3>';
+  h += '<div class="fg"><label>Amount (₹)</label>';
+  h += '<input type="number" id="withdrawAmount" placeholder="Kitna paisa nikalna hai" min="1" max="'+bal+'" onkeydown="if(event.key===\'Enter\')submitWithdraw()">';
+  h += '</div>';
+  h += '<div class="fg"><label>UPI ID (paisa yaha aayega)</label>';
+  h += '<input type="text" id="withdrawUpi" placeholder="Ter UPI ID jaha paisa aaye">';
+  h += '</div>';
+  h += '<div class="btn-grp mt-8">';
+  h += '<button class="btn btn-r btn-full" onclick="submitWithdraw()">💸 Submit Withdraw Request</button>';
+  h += '<button class="btn btn-s btn-sm btn-full mt-8" onclick="hideWithdraw()">Cancel</button>';
+  h += '</div>';
+  h += '<div id="withdrawStatus" class="mt-8 text-center" style="font-size:.85em;color:var(--dim)"></div>';
   h += '</div></div>';
 
   h += '<div class="card">';
@@ -1396,6 +1598,43 @@ function openUPIApp(){
   var upiLink = 'upi://pay?pa='+CONFIG.ADMIN_UPI_ID+'&pn='+encodeURIComponent(CONFIG.ADMIN_UPI_NAME)+'&cu=INR';
   window.location.href = upiLink;
   setTimeout(function(){ toast('📱 Agar UPI app nahi khula to copy UPI ID karo'); }, 2000);
+}
+
+// ===== WITHDRAW =====
+function showWithdraw(){
+  var el = document.getElementById('withdrawSection');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+  document.getElementById('withdrawStatus').textContent = '';
+}
+function hideWithdraw(){
+  document.getElementById('withdrawSection').style.display = 'none';
+  document.getElementById('withdrawAmount').value = '';
+  document.getElementById('withdrawUpi').value = '';
+  document.getElementById('withdrawStatus').textContent = '';
+}
+function submitWithdraw(){
+  var amount = parseInt(document.getElementById('withdrawAmount').value);
+  var upi = document.getElementById('withdrawUpi').value.trim();
+  if(!amount || amount < 1){ toast('❌ Valid amount daalo!'); return; }
+  var team = D.teams.find(t => t.id === D.loggedIn.id);
+  var bal = team ? (team.balance||0) : 0;
+  if(amount > bal){ toast('❌ Wallet mein itna paisa nahi hai!'); return; }
+  if(!upi){ toast('❌ UPI ID daalo!'); return; }
+  if(upi.length < 6){ toast('❌ Valid UPI ID daalo!'); return; }
+
+  D.withdrawRequests.push({
+    id: uid(),
+    teamId: D.loggedIn.id,
+    teamName: D.loggedIn.name,
+    amount: amount,
+    upi: upi,
+    timestamp: new Date().toISOString(),
+    status: 'pending'
+  });
+  saveData();
+  toast('✅ Withdraw request bhej diya! Admin approve karega.');
+  hideWithdraw();
+  renderPage(currentPage);
 }
 
 function submitPayment(){
@@ -1720,8 +1959,24 @@ function renderAdminPayments(){
     });
   }
 
+  // --- Withdraw Requests ---
+  var withdrawPending = D.withdrawRequests.filter(r => r.status==='pending');
+  if(withdrawPending.length>0){
+    h += '<h3 style="font-size:.9em;color:#ff1744;margin:12px 0 6px">💸 Withdraw Requests ('+withdrawPending.length+')</h3>';
+    withdrawPending.forEach(r => {
+      h += '<div class="card" style="border-color:#ff1744">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+r.teamName+'</span><span class="badge badge-pending">Pending</span></div>';
+      h += '<div class="row"><span class="label">Amount</span><span style="color:#ff1744;font-weight:700">₹'+r.amount+'</span></div>';
+      h += '<div class="row"><span class="label">📱 UPI: '+r.upi+'</span></div>';
+      h += '<div class="btn-grp mt-8">';
+      h += '<button class="btn btn-g btn-sm" onclick="approveWithdraw(\''+r.id+'\')">✅ Approve & Pay</button>';
+      h += '<button class="btn btn-r btn-sm" onclick="rejectWithdraw(\''+r.id+'\')">❌ Reject</button>';
+      h += '</div></div>';
+    });
+  }
+
   // --- Event Payment Requests ---
-  if(pending.length===0 && others.length===0 && walletPending.length===0){
+  if(pending.length===0 && others.length===0 && walletPending.length===0 && withdrawPending.length===0){
     h = '<div class="card text-center text-dim">Koi payment request nahi hai.</div>';
   }
 
@@ -1785,6 +2040,23 @@ function approveWalletTopUp(rid){
 function rejectWalletTopUp(rid){
   var r = D.walletRequests.find(x => x.id===rid);
   if(r){ r.status = 'rejected'; saveData(); renderPage(currentPage); toast('❌ Wallet top-up rejected!'); }
+}
+// Withdraw Approve / Reject
+function approveWithdraw(rid){
+  var r = D.withdrawRequests.find(x => x.id===rid);
+  if(!r) return;
+  r.status = 'approved';
+  var team = D.teams.find(t => t.id === r.teamId);
+  if(team){
+    team.balance = Math.max(0, (team.balance||0) - r.amount);
+  }
+  saveData();
+  renderPage(currentPage);
+  toast('✅ Withdraw approved! ₹'+r.amount+' deducted from wallet.');
+}
+function rejectWithdraw(rid){
+  var r = D.withdrawRequests.find(x => x.id===rid);
+  if(r){ r.status = 'rejected'; saveData(); renderPage(currentPage); toast('❌ Withdraw rejected!'); }
 }
 function notifyPay(pid){
   var pm = D.payments.find(x => x.id===pid);
@@ -1977,7 +2249,7 @@ document.addEventListener('keydown', function(e){
       if(document.getElementById('loginForm').classList.contains('active')){
         if(a.id==='loginEmail'||a.id==='loginPass') doLogin();
       } else {
-        if(a.id==='signupName'||a.id==='signupEmail'||a.id==='signupPhone'||a.id==='signupBgmi'||a.id==='signupBgmiId'||a.id==='signupPass') doSignup();
+        if(a.id==='signupName'||a.id==='signupEmail'||a.id==='signupPhone'||a.id==='signupBgmi'||a.id==='signupBgmiId'||a.id==='signupPass') startSignupOTP();
       }
     }
   }

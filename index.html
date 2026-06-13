@@ -217,7 +217,10 @@ a{color:var(--acc);text-decoration:none;}
         <div id="otpStatus" class="mt-8 text-center" style="font-size:.85em"></div>
       </div>
       <div class="auth-link text-center mt-12 text-dim">
-        Account nahi hai? <a href="javascript:void(0)" onclick="showSignup()">Sign Up</a>
+        <span style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+          <a href="javascript:void(0)" onclick="showSignup()">📝 Sign Up</a>
+          <a href="javascript:void(0)" onclick="openModal('forgot-pass')" style="color:var(--acc)">🔑 Forgot Password?</a>
+        </span>
       </div>
     </div>
 
@@ -434,6 +437,22 @@ a{color:var(--acc);text-decoration:none;}
   </div>
 </div>
 
+<!-- Forgot Password -->
+<div class="modal-bg" id="modal-forgot-pass">
+  <div class="modal" style="max-width:360px">
+    <h2>🔑 Forgot Password?</h2>
+    <div class="auth-err" id="forgotErr"></div>
+    <div class="fg"><label>Apna registered email daalo</label>
+      <input type="email" id="forgotEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')forgotPassword()">
+    </div>
+    <button class="btn btn-p btn-full" onclick="forgotPassword()">🔍 Find Account</button>
+    <div id="forgotResult" class="mt-8 text-center" style="font-size:.9em;display:none;padding:10px;background:var(--card2);border-radius:8px;word-break:break-all"></div>
+    <div class="btn-grp mt-8">
+      <button class="btn btn-s btn-full" onclick="closeForgotPass()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -450,6 +469,7 @@ let D = {
   tournaments: [],
   matches: [],
   payments: [],
+  walletRequests: [],
   loggedIn: null
 };
 
@@ -482,7 +502,8 @@ function saveData(){
     teams: D.teams,
     tournaments: D.tournaments,
     matches: D.matches,
-    payments: D.payments
+    payments: D.payments,
+    walletRequests: D.walletRequests
   }));
 }
 function loadData(){
@@ -494,6 +515,7 @@ function loadData(){
       if(p.tournaments) D.tournaments = p.tournaments;
       if(p.matches) D.matches = p.matches;
       if(p.payments) D.payments = p.payments;
+      if(p.walletRequests) D.walletRequests = p.walletRequests;
     }
     // Check for logged in session
     const sess = localStorage.getItem('gamewin-session');
@@ -641,8 +663,18 @@ function doLogin(){
   var pass = document.getElementById('loginPass').value.trim();
   if(!email||!pass){ showErr('loginErr','Email/Username aur password daalo!'); return; }
 
-  // Reload data from localStorage before checking — fixes "galat" bug
-  loadData();
+  // Reload only data, NOT session (session overwrites D.loggedIn causing bugs)
+  try{
+    var raw = localStorage.getItem('gamewin-v1');
+    if(raw){
+      var p = JSON.parse(raw);
+      if(p.teams) D.teams = p.teams;
+      if(p.tournaments) D.tournaments = p.tournaments;
+      if(p.matches) D.matches = p.matches;
+      if(p.payments) D.payments = p.payments;
+      if(p.walletRequests) D.walletRequests = p.walletRequests;
+    }
+  }catch(e){ console.warn('Reload err:', e); }
 
   // Check admin
   if(email.toLowerCase()===D.admin.username.toLowerCase() && pass===D.admin.password){
@@ -841,6 +873,7 @@ function doSignup(){
     bgmiId: bgmiId,
     password: pass,
     points: 0,
+    balance: 0,
     joinedAt: new Date().toISOString()
   };
   D.teams.push(team);
@@ -861,6 +894,50 @@ function doLogout(){
   document.getElementById('loginEmail').value='';
   document.getElementById('loginPass').value='';
   showLogin();
+}
+
+// ===== FORGOT PASSWORD =====
+function forgotPassword(){
+  var email = document.getElementById('forgotEmail').value.trim();
+  var errEl = document.getElementById('forgotErr');
+  var resultEl = document.getElementById('forgotResult');
+  errEl.textContent = '';
+  resultEl.style.display = 'none';
+  if(!email){ errEl.textContent = '❌ Apna registered email daalo!'; return; }
+
+  // Reload data before check
+  try{
+    var raw = localStorage.getItem('gamewin-v1');
+    if(raw){
+      var p = JSON.parse(raw);
+      if(p.teams) D.teams = p.teams;
+    }
+  }catch(e){}
+
+  // Check admin
+  if(email.toLowerCase() === D.admin.username.toLowerCase()){
+    resultEl.innerHTML = '👑 <b>Admin Account</b><br>Password: <code style="font-size:1.1em">'+D.admin.password+'</code>';
+    resultEl.style.display = 'block';
+    return;
+  }
+
+  // Check teams
+  var team = D.teams.find(t => t.email.toLowerCase() === email.toLowerCase());
+  if(!team){
+    errEl.textContent = '❌ Ye email registered nahi hai! Pehle sign up karo.';
+    return;
+  }
+
+  resultEl.innerHTML = '🎮 <b>'+team.name+'</b><br>📧 '+team.email+'<br>🔑 Password: <code style="font-size:1.1em">'+team.password+'</code>';
+  resultEl.style.display = 'block';
+  toast('✅ Password mil gaya! Use karo login karne ke liye.');
+}
+
+function closeForgotPass(){
+  document.getElementById('forgotEmail').value = '';
+  document.getElementById('forgotErr').textContent = '';
+  document.getElementById('forgotResult').style.display = 'none';
+  closeModal('forgot-pass');
 }
 
 // ===== ENTER APP =====
@@ -938,8 +1015,9 @@ function renderHome(){
   h += '<div class="row"><span class="label">Points</span><span style="color:var(--acc);font-weight:700">'+ (team ? team.points||0 : 0)+'</span></div>';
   h += '<div class="row"><span class="label">Active Events</span><span>'+ activeEvents.length +'</span></div>';
   h += '<div class="row"><span class="label">Upcoming Matches</span><span>'+ upcomingMatches.length +'</span></div>';
-  h += '<div class="row"><span class="label">Payments Done</span><span>'+ p +'</span></div></div>';
-
+  h += '<div class="row"><span class="label">Payments Done</span><span>'+ p +'</span></div>';
+  if(team) h += '<div class="row"><span class="label">💰 Wallet Balance</span><span style="color:#00ff88;font-weight:700;font-size:1.1em">₹'+(team.balance||0).toLocaleString('en-IN')+'</span></div>';
+  h += '</div>';
   if(D.tournaments.length===0){
     h += '<div class="card text-center text-dim">Abhi koi tournament nahi hai. Baad me check karo!</div>';
   } else {
@@ -989,8 +1067,11 @@ function openJoin(tid){
   el.innerHTML += '<div class="row"><span class="label">Prize</span><span>₹'+t.prize+'</span></div>';
 
   if(parseInt(t.fee) > 0){
-    el.innerHTML += '<p class="mt-8 text-dim">Payment karna hoga. Payment page me jayen.</p>';
-    el.innerHTML += '<button class="btn btn-g btn-full mt-8" onclick="closeModal(\'join-tournament\');go(\'payments\')">💰 Go to Payment</button>';
+    el.innerHTML += '<p class="mt-8 text-dim">🔹 UPI se pay karo ya 🆔 Wallet se deduct karo</p>';
+    el.innerHTML += '<div class="btn-grp" style="flex-direction:column;gap:6px">';
+    el.innerHTML += '<button class="btn btn-g btn-full" onclick="closeModal(\'join-tournament\');go(\'payments\')">💰 Pay via UPI</button>';
+    el.innerHTML += '<button class="btn btn-p btn-full" onclick="walletJoin(\''+tid+'\')">💳 Pay via Wallet (₹'+t.fee+')</button>';
+    el.innerHTML += '</div>';
   } else {
     el.innerHTML += '<p class="mt-8 text-green">✅ Free tournament! Direct join.</p>';
     el.innerHTML += '<button class="btn btn-p btn-full mt-8" onclick="freeJoin(\''+tid+'\')">✅ Join Free</button>';
@@ -1115,6 +1196,36 @@ function copyMatchInfo(mid){
 // Payments Page
 function renderPayments(){
   var h = '';
+  
+  // --- Wallet Section ---
+  var team = D.teams.find(t => t.id === D.loggedIn.id);
+  var bal = team ? (team.balance||0) : 0;
+  h += '<div class="card" style="border-color:#00ff88">';
+  h += '<h3>💰 My Wallet</h3>';
+  h += '<div style="text-align:center;padding:10px 0">';
+  h += '<div style="font-size:2.5em;font-weight:800;color:#00ff88">₹'+bal.toLocaleString('en-IN')+'</div>';
+  h += '<div class="text-dim" style="font-size:.85em">Available Balance</div>';
+  h += '</div>';
+  h += '<button class="btn btn-g btn-full" onclick="showAddMoney()">➕ Add Money</button>';
+  h += '</div>';
+  
+  // --- Add Money Modal (hidden inline) ---
+  h += '<div id="addMoneySection" style="display:none">';
+  h += '<div class="card">';
+  h += '<h3>📥 Add Money to Wallet</h3>';
+  h += '<div style="text-align:center;padding:8px 0">';
+  h += '<div id="wallet-qr" style="display:inline-block;background:#fff;padding:10px;border-radius:12px"></div>';
+  h += '</div>';
+  h += '<div class="row"><span class="label">UPI ID</span><span style="color:var(--acc);font-weight:700">'+CONFIG.ADMIN_UPI_ID+'</span></div>';
+  h += '<div class="row"><span class="label">Name</span><span>'+CONFIG.ADMIN_UPI_NAME+'</span></div>';
+  h += '<div class="fg"><label>Amount (₹)</label><input type="number" id="walletAmount" placeholder="Jitna paisa add karna hai" min="1" onkeydown="if(event.key===\'Enter\')submitWalletTopUp()"></div>';
+  h += '<div class="fg"><label>UTR Number</label><input type="text" id="walletUtr" placeholder="UPI transaction UTR" onkeydown="if(event.key===\'Enter\')submitWalletTopUp()"></div>';
+  h += '<div class="btn-grp mt-8">';
+  h += '<button class="btn btn-g btn-full" onclick="submitWalletTopUp()">✅ Submit & Request Approval</button>';
+  h += '<button class="btn btn-s btn-sm btn-full mt-8" onclick="hideAddMoney()">Cancel</button>';
+  h += '</div>';
+  h += '</div></div>';
+
   h += '<div class="card">';
   h += '<h3>💳 UPI Payment</h3>';
   h += '<div style="text-align:center;padding:12px 0">';
@@ -1192,6 +1303,92 @@ function generateUPIQR(){
       correctLevel: QRCode.CorrectLevel.H
     });
   } catch(e){ console.warn('QR error:', e); }
+}
+
+// ===== WALLET FUNCTIONS =====
+function showAddMoney(){
+  var el = document.getElementById('addMoneySection');
+  el.style.display = el.style.display==='none' ? '' : 'none';
+  // Generate QR
+  setTimeout(function(){
+    var qrEl = document.getElementById('wallet-qr');
+    if(qrEl && !qrEl.querySelector('img')){
+      qrEl.innerHTML = '';
+      try {
+        var upiLink = 'upi://pay?pa='+CONFIG.ADMIN_UPI_ID+'&pn='+encodeURIComponent(CONFIG.ADMIN_UPI_NAME)+'&cu=INR';
+        new QRCode(qrEl, {
+          text: upiLink,
+          width: 200,
+          height: 200,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch(e){ console.warn('QR error:', e); }
+    }
+  }, 100);
+}
+function hideAddMoney(){
+  document.getElementById('addMoneySection').style.display = 'none';
+  document.getElementById('walletAmount').value = '';
+  document.getElementById('walletUtr').value = '';
+}
+function submitWalletTopUp(){
+  var amount = parseInt(document.getElementById('walletAmount').value);
+  var utr = document.getElementById('walletUtr').value.trim();
+  if(!amount || amount < 1){ toast('❌ Valid amount daalo!'); return; }
+  if(!utr){ toast('❌ UTR number daalo!'); return; }
+
+  // Check if UTR already used
+  if(D.walletRequests.find(r => r.utr===utr) || D.payments.find(p => p.utr===utr && p.utr!=='FREE')){
+    toast('❌ Ye UTR already use ho chuka hai!'); return;
+  }
+
+  D.walletRequests.push({
+    id: uid(),
+    teamId: D.loggedIn.id,
+    teamName: D.loggedIn.name,
+    amount: amount,
+    utr: utr,
+    timestamp: new Date().toISOString(),
+    status: 'pending'
+  });
+  saveData();
+  toast('✅ Wallet top-up request bhej diya! Admin approve karega.');
+  hideAddMoney();
+  renderPage(currentPage);
+}
+function walletJoin(tid){
+  var t = D.tournaments.find(x => x.id===tid);
+  if(!t) return;
+  var fee = parseInt(t.fee);
+  var team = D.teams.find(x => x.id === D.loggedIn.id);
+  if(!team){ toast('❌ Team not found!'); return; }
+  
+  var bal = team.balance || 0;
+  if(bal < fee){
+    toast('❌ Wallet mein ₹'+fee+' nahi hai! Pehle Add Money karo.');
+    return;
+  }
+
+  // Deduct from wallet
+  team.balance = bal - fee;
+
+  // Create payment record
+  D.payments.push({
+    id: uid(),
+    tid: tid,
+    teamId: D.loggedIn.id,
+    teamName: D.loggedIn.name,
+    utr: 'WALLET-'+uid().substring(0,8),
+    amount: fee,
+    status: 'approved',
+    timestamp: new Date().toISOString()
+  });
+  saveData();
+  closeModal('join-tournament');
+  toast('✅ ₹'+fee+' wallet se deduct ho gaya! Tournament join ho gaya.');
+  renderPage(currentPage);
 }
 
 // Open UPI app
@@ -1507,7 +1704,24 @@ function renderAdminPayments(){
   var pending = D.payments.filter(p => p.status==='pending');
   var others = D.payments.filter(p => p.status!=='pending');
 
-  if(pending.length===0 && others.length===0){
+  // --- Wallet Top-Up Requests ---
+  var walletPending = D.walletRequests.filter(r => r.status==='pending');
+  if(walletPending.length>0){
+    h += '<h3 style="font-size:.9em;color:#00ff88;margin-bottom:6px">💰 Wallet Top-Up Requests ('+walletPending.length+')</h3>';
+    walletPending.forEach(r => {
+      h += '<div class="card" style="border-color:#00ff88">';
+      h += '<div class="flex"><span style="font-weight:600;flex:1">'+r.teamName+'</span><span class="badge badge-pending">Pending</span></div>';
+      h += '<div class="row"><span class="label">Amount</span><span style="color:#00ff88;font-weight:700">₹'+r.amount+'</span></div>';
+      h += '<div class="row"><span class="label">🔢 UTR: '+r.utr+'</span></div>';
+      h += '<div class="btn-grp mt-8">';
+      h += '<button class="btn btn-g btn-sm" onclick="approveWalletTopUp(\''+r.id+'\')">✅ Approve & Add Balance</button>';
+      h += '<button class="btn btn-r btn-sm" onclick="rejectWalletTopUp(\''+r.id+'\')">❌ Reject</button>';
+      h += '</div></div>';
+    });
+  }
+
+  // --- Event Payment Requests ---
+  if(pending.length===0 && others.length===0 && walletPending.length===0){
     h = '<div class="card text-center text-dim">Koi payment request nahi hai.</div>';
   }
 
@@ -1554,6 +1768,23 @@ function approvePay(pid){
 function rejectPay(pid){
   var pm = D.payments.find(x => x.id===pid);
   if(pm){ pm.status = 'rejected'; saveData(); renderPage(currentPage); toast('❌ Payment rejected!'); }
+}
+// Wallet Top-Up Approve / Reject
+function approveWalletTopUp(rid){
+  var r = D.walletRequests.find(x => x.id===rid);
+  if(!r) return;
+  r.status = 'approved';
+  var team = D.teams.find(t => t.id === r.teamId);
+  if(team){
+    team.balance = (team.balance||0) + r.amount;
+    toast('✅ ₹'+r.amount+' wallet mein add ho gaya!');
+  }
+  saveData();
+  renderPage(currentPage);
+}
+function rejectWalletTopUp(rid){
+  var r = D.walletRequests.find(x => x.id===rid);
+  if(r){ r.status = 'rejected'; saveData(); renderPage(currentPage); toast('❌ Wallet top-up rejected!'); }
 }
 function notifyPay(pid){
   var pm = D.payments.find(x => x.id===pid);

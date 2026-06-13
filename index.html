@@ -17,10 +17,18 @@
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--bg:#0a0a0f;--card:#12121a;--card2:#1a1a2e;--acc:#ffd700;--acc2:#ff6b35;--gold:#ffd700;--blue:#00d4ff;--green:#00ff88;--text:#e0e0e0;--dim:#888;--brd:#2a2a3e;}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
+:root{--bg:#0a0a0f;--bg2:#050508;--card:#12121a;--card2:#1a1a2e;--acc:#ffd700;--acc2:#ff6b35;--gold:#ffd700;--blue:#00d4ff;--green:#00ff88;--neon:#ff00ff;--text:#e0e0e0;--dim:#888;--brd:#2a2a3e;--brand:#ffd700;}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;position:relative;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(255,215,0,.03) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(0,212,255,.02) 0%,transparent 50%),radial-gradient(ellipse at 50% 80%,rgba(255,0,255,.02) 0%,transparent 50%);pointer-events:none;z-index:0;}
 input,button,textarea{font-family:inherit;font-size:inherit;}
 a{color:var(--acc);text-decoration:none;}
+
+/* Animated bg particles */
+#particles-canvas{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.3;}
+
+/* Ladakusena Brand Logo */
+.brand-logo{font-size:1.6em;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35,#ff00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;letter-spacing:1px;}
+.brand-logo span{font-size:.5em;display:block;background:linear-gradient(135deg,#00d4ff,#00ff88);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px;}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:4px;}
@@ -29,9 +37,10 @@ a{color:var(--acc);text-decoration:none;}
 
 /* ===== AUTH ===== */
 .auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
-.auth-logo{font-size:2.2em;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:5px;}
+.auth-logo{font-size:2.2em;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35,#ff00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:5px;}
 .auth-subtitle{color:var(--dim);text-align:center;margin-bottom:25px;font-size:.9em;}
-.auth-card{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:24px;width:100%;max-width:400px;}
+.auth-card{background:var(--card);border:1px solid var(--brd);border-radius:16px;padding:24px;width:100%;max-width:400px;position:relative;overflow:hidden;}
+.auth-card::before{content:'';position:absolute;inset:-2px;border-radius:18px;background:linear-gradient(135deg,var(--gold),var(--neon),var(--blue),var(--gold));background-size:300% 300%;z-index:-1;opacity:.3;animation:borderGlow 4s ease infinite;}
 .auth-card h2{font-size:1.1em;color:var(--acc);text-align:center;margin-bottom:16px;}
 .auth-form{display:none;}
 .auth-form.active{display:block;}
@@ -50,11 +59,14 @@ a{color:var(--acc);text-decoration:none;}
 .eye-btn:active{color:var(--text);}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9em;transition:all .2s;touch-action:manipulation;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.9em;transition:all .2s;touch-action:manipulation;position:relative;}
 .btn:active{transform:scale(.96);}
 .btn-full{width:100%;}
 .btn-p{background:linear-gradient(135deg,#ffd700,#ff6b35);color:#000;}
+.btn-p:hover{box-shadow:0 0 15px rgba(255,215,0,.4);}
+.btn-p:active{box-shadow:0 0 25px rgba(255,215,0,.6);}
 .btn-g{background:linear-gradient(135deg,#00c853,#00e676);color:#000;}
+.btn-g:hover{box-shadow:0 0 15px rgba(0,200,83,.4);}
 .btn-r{background:linear-gradient(135deg,#ff1744,#d50000);color:#fff;}
 .btn-s{background:var(--card2);color:var(--text);border:1px solid var(--brd);}
 .btn-w{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;}
@@ -65,9 +77,9 @@ a{color:var(--acc);text-decoration:none;}
 .btn-grp .btn{flex:1;min-width:80px;}
 
 /* ===== SCREENS ===== */
-.top-bar{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);}
-.top-bar h1{font-size:1em;color:var(--acc);font-weight:700;}
-.top-bar .user-info{font-size:.8em;color:var(--dim);}
+.top-bar{position:sticky;top:0;z-index:100;background:rgba(18,18,26,.95);border-bottom:1px solid var(--brd);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);}
+.top-bar h1{font-size:1em;font-weight:800;background:linear-gradient(135deg,#ffd700,#ff6b35,#ff00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.5px;}
+.top-bar .user-info{font-size:.75em;color:var(--dim);}
 .page{display:none;padding:12px;max-width:600px;margin:0 auto;padding-bottom:80px;}
 .page.active{display:block;}
 
@@ -77,8 +89,13 @@ a{color:var(--acc);text-decoration:none;}
 .btm-nav button .nv-icon{font-size:1.3em;line-height:1;}
 .btm-nav button.active{color:var(--acc);}
 
-/* Cards */
-.card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;}
+/* ===== Keyframes ===== */
+@keyframes borderGlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px var(--acc);}50%{box-shadow:0 0 20px var(--acc),0 0 40px rgba(255,215,0,.3);}}
+.card{animation:fadeInUp .3s ease;background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;transition:border-color .2s,box-shadow .2s;}
+.card:hover{border-color:rgba(255,215,0,.3);box-shadow:0 0 15px rgba(255,215,0,.05);}
 .card h3{font-size:.9em;color:var(--acc);margin-bottom:6px;}
 .card p,.card div{font-size:.85em;color:var(--text);}
 .card .row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:.83em;}
@@ -86,12 +103,18 @@ a{color:var(--acc);text-decoration:none;}
 
 /* Badges */
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75em;font-weight:600;}
-.badge-upcoming{background:rgba(0,212,255,.15);color:var(--blue);}
-.badge-ongoing{background:rgba(0,255,136,.15);color:var(--green);}
-.badge-completed{background:rgba(136,136,136,.15);color:var(--dim);}
-.badge-pending{background:rgba(255,70,85,.15);color:#ff4655;}
-.badge-approved{background:rgba(0,255,136,.15);color:var(--green);}
-.badge-rejected{background:rgba(255,70,85,.15);color:#ff4655;}
+.badge-upcoming{background:rgba(0,212,255,.15);color:var(--blue);border:1px solid rgba(0,212,255,.3);}
+.badge-ongoing{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);animation:pulse 2s infinite;}
+.badge-completed{background:rgba(136,136,136,.15);color:var(--dim);border:1px solid rgba(136,136,136,.3);}
+.badge-pending{background:rgba(255,70,85,.15);color:#ff4655;border:1px solid rgba(255,70,85,.3);animation:pulse 2s infinite;}
+.badge-approved{background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);}
+.badge-rejected{background:rgba(255,70,85,.15);color:#ff4655;border:1px solid rgba(255,70,85,.3);}
+
+/* Particle Canvas */
+#particles-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;opacity:.6;}
+.login-tab{font-size:.8em;padding:6px 12px;border-radius:6px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-weight:600;transition:all .2s;}
+.login-tab.active{background:var(--acc);color:#000;box-shadow:0 0 10px rgba(255,215,0,.3);}
+.text-green{color:var(--green)!important;}
 
 /* Modal */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;justify-content:center;align-items:center;padding:20px;overflow-y:auto;}
@@ -132,8 +155,8 @@ a{color:var(--acc);text-decoration:none;}
 
 <!-- ==================== AUTH SCREEN ==================== -->
 <div class="auth-screen" id="authScreen">
-  <div class="auth-logo">🏆 GAME WIN</div>
-  <div class="auth-subtitle">Organize • Compete • Win 🎮</div>
+  <div class="auth-logo">⚔️ LADAKUSENA</div>
+  <div class="auth-subtitle">🔥 Personal Gaming Tournament Platform</div>
 
   <div class="auth-card">
     <!-- LOGIN FORM -->
@@ -153,7 +176,7 @@ a{color:var(--acc);text-decoration:none;}
         <div class="fg"><label>Password</label>
           <div class="pass-wrap">
             <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
-            <button type="button" id="loginEye" class="eye-btn" onclick="togglePass()" ontouchend="togglePass()">👁️</button>
+            <button type="button" id="loginEye" class="eye-btn">👁️</button>
           </div>
         </div>
         <button type="button" class="btn btn-p btn-full" onclick="doLogin()">🔑 Login</button>
@@ -202,7 +225,7 @@ a{color:var(--acc);text-decoration:none;}
       <div class="fg"><label>Password</label>
         <div class="pass-wrap">
           <input type="password" id="signupPass" placeholder="Password (min 6 chars)" autocomplete="new-password">
-          <button type="button" id="signupEye" class="eye-btn" onclick="togglePassSignup()" ontouchend="togglePassSignup()">👁️</button>
+          <button type="button" id="signupEye" class="eye-btn">👁️</button>
         </div>
       </div>
       <button type="button" class="btn btn-p btn-full" onclick="doSignup()">📝 Sign Up</button>
@@ -218,7 +241,7 @@ a{color:var(--acc);text-decoration:none;}
 
 <!-- TOP BAR -->
 <div class="top-bar">
-  <div><h1>🏆 GAME WIN</h1><div class="user-info" id="userInfo"></div></div>
+  <div><h1>🔥 LADAKUSENA</h1><div class="user-info" id="userInfo"></div></div>
   <button class="btn btn-s btn-sm" onclick="doLogout()">🚪 Logout</button>
 </div>
 
@@ -420,6 +443,7 @@ const CONFIG = {
   HELP_EMAIL: 'raj86017@gmail.com',
   HELP_WHATSAPP: '',
   CHANNEL_URL: 'https://whatsapp.com/channel/0029VbDNku0BA1f5JYhOKv2V',
+  TELEGRAM_URL: 'https://t.me/Ladakusena01_bot',  // ← Replace with your Telegram channel link
   // EmailJS — FREE (200 emails/month). Signup: https://www.emailjs.com/
   // Step 1: Signup → Step 2: Create Email Service → Step 3: Create Template
   // Step 4: Copy keys below
@@ -522,12 +546,43 @@ function togglePassSignup(){
     btn.textContent = pw ? '🙈' : '👁️';
   }catch(e){}
 }
-// Backup event listeners
+// Simplified eye button listeners (no conflicting ontouchend/click)
+document.getElementById('loginEye')?.addEventListener('click', togglePass);
+document.getElementById('signupEye')?.addEventListener('click', togglePassSignup);
+
+// ===== PARTICLE BACKGROUND =====
 (function(){
-  var le = document.getElementById('loginEye');
-  if(le){ le.addEventListener('click',togglePass); le.addEventListener('touchend',function(e){e.preventDefault();togglePass();});}
-  var se = document.getElementById('signupEye');
-  if(se){ se.addEventListener('click',togglePassSignup); se.addEventListener('touchend',function(e){e.preventDefault();togglePassSignup();});}
+  var c = document.createElement('canvas');
+  c.id = 'particles-canvas';
+  document.body.prepend(c);
+  var ctx = c.getContext('2d');
+  var w, h, particles = [];
+  function resize(){ w=c.width=window.innerWidth; h=c.height=window.innerHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+  for(var i=0;i<40;i++){
+    particles.push({
+      x: Math.random()*w, y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.5, vy: (Math.random()-0.5)*0.5,
+      r: Math.random()*2+1, o: Math.random()*0.5+0.1
+    });
+  }
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    particles.forEach(function(p){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>w) p.vx*=-1;
+      if(p.y<0||p.y>h) p.vy*=-1;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,215,0,'+p.o+')';
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+  // Reduce particles on mobile for performance
+  if(w<500) particles.length=20;
 })();
 
 // ===== AUTH =====
@@ -882,6 +937,14 @@ function renderHome(){
     });
   }
 
+  // Telegram channel banner
+  h += '<div class="card" style="border-color:var(--acc);background:linear-gradient(135deg,rgba(255,215,0,.05),rgba(255,107,53,.05));">';
+  h += '<div class="flex" style="align-items:center;gap:10px;">';
+  h += '<span style="font-size:2em;">📢</span>';
+  h += '<div style="flex:1"><b style="color:var(--acc)">Join Telegram Channel</b><br><span class="text-dim" style="font-size:.8em">Updates, results & announcements</span></div>';
+  h += '<button class="btn btn-p btn-sm" onclick="window.open(CONFIG.TELEGRAM_URL,\'_blank\')">Join</button>';
+  h += '</div></div>';
+
   document.getElementById('homeContent').innerHTML = h;
 }
 
@@ -1181,11 +1244,13 @@ function renderHelp(){
   h += '<button class="btn btn-b btn-full mt-8" onclick="window.location.href=\'mailto:'+CONFIG.HELP_EMAIL+'\'">✉️ Email Contact</button>';
   h += '</div>';
 
-  h += '<div class="card">';
-  h += '<h3>📢 Game Win Channel</h3>';
-  h += '<p>Tele updates aur results ke liye hamare WhatsApp Channel ko follow karo!</p>';
-  h += '<button class="btn btn-w btn-full mt-8" onclick="window.open(CONFIG.CHANNEL_URL,\'_blank\')">📢 Join Game Win Channel</button>';
-  h += '</div>';
+  h += '<div class="card" style="border-color:var(--acc);">';
+  h += '<h3>📢 Join Our Telegram</h3>';
+  h += '<p>Turf updates, results, aur new tournaments ke liye hamare <b>Telegram Channel</b> ko join karo!</p>';
+  h += '<div class="btn-grp mt-8">';
+  h += '<button class="btn btn-p btn-full" onclick="window.open(CONFIG.TELEGRAM_URL,\'_blank\')">📢 Join Telegram Channel</button>';
+  h += '<button class="btn btn-w btn-full" onclick="window.open(CONFIG.CHANNEL_URL,\'_blank\')">📢 WhatsApp Channel</button>';
+  h += '</div></div>';
 
   h += '<div class="card">';
   h += '<h3>❓ FAQ</h3>';

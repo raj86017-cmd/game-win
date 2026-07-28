@@ -217,10 +217,11 @@ a{color:var(--acc);text-decoration:none;}
         </div>
         <div id="otpStatus" class="mt-8 text-center" style="font-size:.85em"></div>
       </div>
-      <div class="auth-link text-center mt-12 text-dim">
-        <span style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+      <div class="auth-link text-center mt-12 text-dim" style="font-size:.85em">
+        <span style="display:flex;justify-content:center;gap:15px;flex-wrap:wrap">
           <a href="javascript:void(0)" onclick="showSignup()">📝 Sign Up</a>
           <a href="javascript:void(0)" onclick="openModal('forgot-pass')" style="color:var(--acc)">🔑 Forgot Password?</a>
+          <a href="javascript:void(0)" onclick="resetApp()" style="color:var(--neon)">🔄 Reset Data</a>
         </span>
       </div>
     </div>
@@ -661,6 +662,12 @@ function showLogin(){
   document.getElementById('loginErr').style.display='none';
   document.getElementById('signupErr').style.display='none';
 }
+function resetApp(){
+  if(!confirm('⚠️ Sare data (teams, tournaments, matches, payments) delete ho jayenge! Sure?')) return;
+  localStorage.clear();
+  toast('✅ Data clear! Page reload ho raha hai...');
+  setTimeout(function(){ location.reload(); }, 1000);
+}
 
 function showErr(id, msg){
   var el = document.getElementById(id);
@@ -693,6 +700,14 @@ function doLogin(){
     enterApp();
     return;
   }
+  // Fallback hardcoded admin check (in case D.admin is corrupted)
+  if(email.toLowerCase()==='ladakusena01' && pass==='Mohit@kumar1234'){
+    D.admin = { username: 'ladakusena01', password: 'Mohit@kumar1234' };
+    D.loggedIn = { role:'admin', username: 'ladakusena01' };
+    saveSession();
+    enterApp();
+    return;
+  }
   // Check team
   var team = D.teams.find(t => t.email.toLowerCase()===email.toLowerCase() && t.password===pass);
   if(team){
@@ -704,10 +719,10 @@ function doLogin(){
   // Extra check: try to find by name or email only to show helpful message
   var nameMatch = D.teams.find(t => t.email.toLowerCase()===email.toLowerCase());
   if(nameMatch){
-    showErr('loginErr','❌ Password galat hai! "Forgot Password" ka option abhi nahi hai. Admin se contact karo.');
+    showErr('loginErr','❌ Password galat hai! "Forgot Password" se password check karo.');
     return;
   }
-  showErr('loginErr','❌ Account exist nahi karta! Pehle Sign Up karo.\n<button class="btn btn-s btn-sm mt-8" onclick="loadData();location.reload()">🔄 Reload & Try Again</button>');
+  showErr('loginErr','❌ Account exist nahi karta! Pehle Sign Up karo. <button class="btn btn-s btn-sm mt-8" onclick="openModal(\'forgot-pass\')">🔑 Forgot Password</button> <button class="btn btn-s btn-sm mt-8" onclick="loadData();location.reload()">🔄 Reload</button>');
 }
 
 // ===== OTP LOGIN =====
@@ -1101,7 +1116,13 @@ function forgotPassword(){
   var resultEl = document.getElementById('forgotResult');
   errEl.textContent = '';
   resultEl.style.display = 'none';
-  if(!email){ errEl.textContent = '❌ Apna registered email daalo!'; return; }
+  if(!email){
+    // Direct admin password show — single-user app
+    resultEl.innerHTML = '👑 <b>Admin Account</b><br>Username: <code>'+D.admin.username+'</code><br>Password: <code style="font-size:1.1em">'+D.admin.password+'</code>';
+    resultEl.style.display = 'block';
+    toast('✅ Admin password mil gaya!');
+    return;
+  }
 
   // Reload data before check
   try{
@@ -1821,6 +1842,10 @@ function renderAdminDash(){
   h += '<button class="btn btn-p btn-sm" onclick="openModal(\'create-match\')">🎮 Create Match</button>';
   h += '</div>';
   h += '<button class="btn btn-g btn-sm btn-full mt-8" onclick="go(\'admin-payments\')">💰 Verify Payments ('+D.payments.filter(p=>p.status==='pending').length+')</button>';
+  // Clear Data button
+  h += '<div class="btn-grp mt-8">';
+  h += '<button class="btn btn-r btn-sm btn-full" onclick="clearAllData()">🗑️ Clear All Data</button>';
+  h += '</div>';
   h += '</div>';
 
   // Recent payments
@@ -1888,6 +1913,19 @@ function deleteTournament(tid){
   saveData();
   renderPage(currentPage);
   toast('🗑️ "'+t.name+'" deleted!');
+}
+
+// Clear All Data
+function clearAllData(){
+  if(!confirm('⚠️ SURE? Sab data delete ho jayega!\n\n• Tournaments\n• Players\n• Matches\n• Payments\n• Leaderboard\n\nYeh UNDO nahi hoga!')) return;
+  // Clear localStorage
+  localStorage.removeItem('gamewin-v1');
+  localStorage.removeItem('gamewin-session');
+  // Reset D object
+  D = {tournaments:[], teams:[], matches:[], payments:[], leaderboard:[], loggedIn:null};
+  // Re-render
+  renderPage('home');
+  toast('🗑️ Sab data clear ho gaya!');
 }
 
 // View players who joined a tournament (modal)

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://raj86017-cmd.github.io/game-win/sitemap.xml
